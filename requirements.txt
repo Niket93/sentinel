@@ -1,0 +1,14 @@
+python-dotenv
+pydantic
+confluent-kafka
+opencv-python
+google-cloud-storage
+google-cloud-aiplatform
+google-cloud-bigquery
+google-cloud-discoveryengine
+google-api-core
+fastapi
+uvicorn
+attrs
+authlib
+ffmpeg

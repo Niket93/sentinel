@@ -56,3 +56,4 @@ coverage.xml
 *.cover
 .hypothesis/
 .pytest_cache/
+grep -E "*.mp4|*.avi|*.mov" .gitignore

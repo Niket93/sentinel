@@ -35,7 +35,6 @@ def _ui_html() -> str:
       :root { color-scheme: dark; }
       html, body { height: 100%; }
 
-      /* Bigger, easier-to-read typography */
       .t-12 { font-size: 12px; line-height: 18px; }
       .t-14 { font-size: 14px; line-height: 20px; }
       .t-16 { font-size: 16px; line-height: 24px; }
@@ -53,7 +52,6 @@ def _ui_html() -> str:
   </head>
 
   <body class="min-h-screen bg-zinc-950 text-zinc-50 antialiased">
-    <!-- Background -->
     <div class="fixed inset-0 -z-10">
       <div class="absolute inset-0 bg-[radial-gradient(900px_circle_at_20%_10%,rgba(16,185,129,0.14),transparent_45%),radial-gradient(900px_circle_at_80%_0%,rgba(99,102,241,0.10),transparent_40%),radial-gradient(900px_circle_at_50%_90%,rgba(244,63,94,0.08),transparent_45%)]"></div>
       <div class="absolute inset-0 opacity-20 bg-[linear-gradient(to_right,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:72px_72px]"></div>
@@ -61,16 +59,14 @@ def _ui_html() -> str:
 
     <div class="w-full max-w-none px-4 sm:px-6 lg:px-10 2xl:px-12 py-6">
 
-      <!-- TOP BAR -->
       <header class="flex items-center justify-between gap-4">
         <div class="leading-tight min-w-0">
           <div class="t-26 font-semibold tracking-tight truncate">Sentinel</div>
           <div class="t-16 text-zinc-300 truncate">
-            Operational video intelligence - from detection to response.
+            Operational Video Intelligence - from Detection to Response.
           </div>
         </div>
 
-        <!-- Use case toggle + stream status -->
         <div class="flex items-center gap-3 shrink-0">
           <div class="flex rounded-2xl bg-zinc-900/60 ring-1 ring-zinc-800 overflow-hidden">
             <button id="ucSecurity" class="px-4 py-2 t-16 font-medium text-zinc-200 hover:bg-zinc-800/60">Security</button>
@@ -84,26 +80,6 @@ def _ui_html() -> str:
         </div>
       </header>
 
-      <!-- STREAM CONTROL STRIP -->
-      <section class="mt-5 rounded-3xl border border-zinc-800/70 bg-zinc-900/35 backdrop-blur overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
-        <div class="px-6 py-5">
-          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-            </div>
-
-            <div class="flex gap-3">
-              <button id="btnStartStream" class="rounded-2xl bg-emerald-500/15 px-5 py-3 t-16 font-medium text-emerald-200 ring-1 ring-emerald-500/25 hover:ring-emerald-500/60">
-                ▶ Start Streaming
-              </button>
-              <button id="btnStopStream" class="rounded-2xl bg-rose-500/15 px-5 py-3 t-16 font-medium text-rose-200 ring-1 ring-rose-500/25 hover:ring-rose-500/60">
-                ■ Stop Streaming
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- CENTERED PARTNER PROOF STRIP -->
       <section class="mt-5 rounded-3xl border border-zinc-800/70 bg-zinc-900/35 backdrop-blur overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
         <div class="px-6 py-5">
           <div class="text-center">
@@ -136,7 +112,6 @@ def _ui_html() -> str:
         </div>
       </section>
 
-      <!-- KPI STRIP -->
       <section class="mt-5 rounded-3xl border border-zinc-800/70 bg-zinc-900/30 backdrop-blur overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
         <div class="px-6 py-5">
           <div class="flex items-center justify-between gap-4">
@@ -205,7 +180,6 @@ def _ui_html() -> str:
         </div>
       </section>
 
-      <!-- SUBHEADER -->
       <div class="mt-6 flex items-center justify-between gap-4">
         <div class="min-w-0">
           <div id="cameraTitle" class="t-18 font-semibold text-zinc-100 truncate">Security Feed</div>
@@ -225,7 +199,6 @@ def _ui_html() -> str:
       </div>
 
       <main class="mt-6 space-y-6">
-        <!-- Video Card -->
         <section class="rounded-3xl border border-zinc-800/70 bg-zinc-900/30 backdrop-blur overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
           <div class="px-6 py-5 flex items-center justify-between border-b border-zinc-800/70">
             <div class="min-w-0">
@@ -240,11 +213,20 @@ def _ui_html() -> str:
               <source id="videoSrc" src="/video?use_case=security" type="video/mp4" />
             </video>
           </div>
+
+          <div class="px-6 py-5 border-t border-zinc-800/70 flex justify-center">
+            <div class="flex gap-3">
+              <button id="btnStartStream" class="rounded-2xl bg-emerald-500/15 px-5 py-3 t-16 font-medium text-emerald-200 ring-1 ring-emerald-500/25 hover:ring-emerald-500/60 hidden">
+                ▶ Start Streaming
+              </button>
+              <button id="btnStopStream" class="rounded-2xl bg-rose-500/15 px-5 py-3 t-16 font-medium text-rose-200 ring-1 ring-rose-500/25 hover:ring-rose-500/60 hidden">
+                ■ Stop Streaming
+              </button>
+            </div>
+          </div>
         </section>
 
-        <!-- 3 Panels -->
         <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <!-- Feed -->
           <div class="rounded-3xl border border-zinc-800/70 bg-zinc-900/30 backdrop-blur overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)] flex flex-col min-h-0">
             <div class="px-6 py-5 border-b border-zinc-800/70">
               <div class="t-14 text-zinc-400">Event stream (Confluent Cloud)</div>
@@ -253,7 +235,6 @@ def _ui_html() -> str:
             <div id="feed" class="p-5 space-y-4 h-[560px] overflow-auto"></div>
           </div>
 
-          <!-- Decision detail -->
           <div class="rounded-3xl border border-zinc-800/70 bg-zinc-900/30 backdrop-blur overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)] flex flex-col min-h-0">
             <div class="px-6 py-5 border-b border-zinc-800/70">
               <div class="t-14 text-zinc-400">Decision detail (Gemini Reasoning)</div>
@@ -267,7 +248,6 @@ def _ui_html() -> str:
             </div>
           </div>
 
-          <!-- Chat -->
           <div class="rounded-3xl border border-zinc-800/70 bg-zinc-900/30 backdrop-blur overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)] flex flex-col min-h-0">
             <div class="px-6 py-5 border-b border-zinc-800/70">
               <div class="t-14 text-zinc-400">Audit Chat (Vertex Grounded)</div>
@@ -298,7 +278,6 @@ def _ui_html() -> str:
       </main>
     </div>
 
-    <!-- Toast notifications -->
     <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-3 w-[420px] max-w-[92vw]"></div>
 
     <script>
@@ -527,13 +506,23 @@ def _ui_html() -> str:
           if (running) {
             statusDot.className = "h-2 w-2 rounded-full bg-emerald-400";
             statusText.textContent = "Streaming";
-            btnStartStream.disabled = true;
+
+            // ✅ Toggle visible buttons
+            btnStartStream.classList.add("hidden");
+            btnStopStream.classList.remove("hidden");
+
+            btnStartStream.disabled = false;
             btnStopStream.disabled = false;
           } else {
             statusDot.className = "h-2 w-2 rounded-full bg-rose-400";
             statusText.textContent = "Stopped";
+
+            // ✅ Toggle visible buttons
+            btnStopStream.classList.add("hidden");
+            btnStartStream.classList.remove("hidden");
+
             btnStartStream.disabled = false;
-            btnStopStream.disabled = true;
+            btnStopStream.disabled = false;
           }
         } catch (e) {}
       }

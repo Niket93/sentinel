@@ -87,5 +87,5 @@ def load_settings(env_path: str = ".env") -> Settings:
         clip_seconds=float(_optional("CLIP_SECONDS", "1.5")),
         sample_fps=int(_optional("SAMPLE_FPS", "10")),
         chat_host=_optional("CHAT_HOST", "127.0.0.1"),
-        chat_port=int(_optional("CHAT_PORT", "8000")),
+        chat_port=int(_optional("CHAT_PORT", os.getenv("PORT", "8000"))),
     )

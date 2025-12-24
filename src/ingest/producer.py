@@ -1,5 +1,6 @@
 from __future__ import annotations
 import os
+import threading
 from datetime import datetime, timezone
 from typing import Optional
 from ..config.settings import Settings
@@ -27,12 +28,16 @@ def publish_clips_from_video(
     station_id: Optional[str] = None,
     sku_id: Optional[str] = None,
     max_clips: Optional[int] = None,
+    stop_event: Optional[threading.Event] = None,
 ) -> None:
     producer = make_producer(cfg)
     gcs = GcsClient(project=cfg.gcp_project)
     clipper = VideoClipper(clip_seconds=cfg.clip_seconds, sample_fps=cfg.sample_fps)
     count = 0
     for clip in clipper.iter_clips(video_path):
+        if stop_event is not None and stop_event.is_set():
+            print(f"[producer] stop_event set → stopping producer for {use_case}")
+            break
         local_size = os.path.getsize(clip.path)
         if local_size <= 0:
             print(f"[producer] SKIP zero-byte local clip: {clip.path}")
@@ -72,7 +77,6 @@ def publish_clips_from_video(
             "source_video": os.path.basename(video_path),
             "local_clip_bytes": len(data),
         })
-
         produce_model(producer, cfg.topic_clips, evt, key=camera_id)
         try:
             os.remove(clip.path)
@@ -82,3 +86,4 @@ def publish_clips_from_video(
         if max_clips is not None and count >= max_clips:
             print(f"[producer] reached max_clips={max_clips}, stopping.")
             break
+    print(f"[producer] stopped for use_case={use_case}, clips_published={count}")

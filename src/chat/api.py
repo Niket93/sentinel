@@ -1,5 +1,6 @@
 from __future__ import annotations
 import json
+import threading
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, FileResponse
 from pydantic import BaseModel
@@ -7,12 +8,18 @@ from google.cloud import bigquery
 from ..config.settings import Settings
 from ..shared.vertex_client import init_vertex
 from ..rag.vertex_search_answer import answer_query
+from ..ingest.producer import publish_clips_from_video
+
 
 class ChatIn(BaseModel):
     question: str
     limit: int = 200
     use_case: str | None = None
     session_id: str | None = None
+
+
+class StreamReq(BaseModel):
+    use_case: str
 
 
 def _ui_html() -> str:
@@ -27,12 +34,21 @@ def _ui_html() -> str:
     <style>
       :root { color-scheme: dark; }
       html, body { height: 100%; }
-      /* Consistent typography scale (no surprises) */
-      .t-11 { font-size: 11px; line-height: 16px; }
+
+      /* Bigger, easier-to-read typography */
       .t-12 { font-size: 12px; line-height: 18px; }
       .t-14 { font-size: 14px; line-height: 20px; }
-      .t-16 { font-size: 16px; line-height: 22px; }
-      .t-18 { font-size: 18px; line-height: 24px; }
+      .t-16 { font-size: 16px; line-height: 24px; }
+      .t-18 { font-size: 18px; line-height: 26px; }
+      .t-22 { font-size: 22px; line-height: 30px; }
+      .t-26 { font-size: 26px; line-height: 34px; }
+
+      summary::-webkit-details-marker { display: none; }
+
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-6px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
     </style>
   </head>
 
@@ -43,49 +59,166 @@ def _ui_html() -> str:
       <div class="absolute inset-0 opacity-20 bg-[linear-gradient(to_right,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:72px_72px]"></div>
     </div>
 
-    <!-- App Shell: full width -->
-    <div class="w-full max-w-none px-4 sm:px-6 lg:px-8 2xl:px-10 py-6">
-      <!-- Top Bar -->
+    <div class="w-full max-w-none px-4 sm:px-6 lg:px-10 2xl:px-12 py-6">
+
+      <!-- TOP BAR -->
       <header class="flex items-center justify-between gap-4">
-        <div class="flex items-center gap-3 min-w-0">
-          <div class="h-10 w-10 rounded-2xl bg-emerald-500/12 ring-1 ring-emerald-500/20 grid place-items-center shrink-0">
-            <span class="text-emerald-300 font-semibold tracking-tight t-14">S</span>
-          </div>
-          <div class="leading-tight min-w-0">
-            <div class="t-16 font-semibold tracking-tight truncate">Sentinel</div>
-            <div class="t-12 text-zinc-400 truncate">Always-on decision copilot for real-world operations</div>
+        <div class="leading-tight min-w-0">
+          <div class="t-26 font-semibold tracking-tight truncate">Sentinel</div>
+          <div class="t-16 text-zinc-300 truncate">
+            Operational video intelligence - from detection to response.
           </div>
         </div>
 
+        <!-- Use case toggle + stream status -->
         <div class="flex items-center gap-3 shrink-0">
-          <!-- Use case toggle -->
           <div class="flex rounded-2xl bg-zinc-900/60 ring-1 ring-zinc-800 overflow-hidden">
-            <button id="ucSecurity" class="px-4 py-2 t-14 font-medium text-zinc-200 hover:bg-zinc-800/60">Security</button>
-            <button id="ucAssembly" class="px-4 py-2 t-14 font-medium text-zinc-200 hover:bg-zinc-800/60">Assembly</button>
+            <button id="ucSecurity" class="px-4 py-2 t-16 font-medium text-zinc-200 hover:bg-zinc-800/60">Security</button>
+            <button id="ucAssembly" class="px-4 py-2 t-16 font-medium text-zinc-200 hover:bg-zinc-800/60">Assembly</button>
           </div>
 
-          <!-- Live indicator -->
           <div class="inline-flex items-center gap-2 rounded-2xl bg-zinc-900/60 ring-1 ring-zinc-800 px-3 py-2">
-            <span id="statusDot" class="h-2 w-2 rounded-full bg-emerald-400"></span>
-            <span id="statusText" class="t-14 text-zinc-200">Live</span>
+            <span id="statusDot" class="h-2 w-2 rounded-full bg-rose-400"></span>
+            <span id="statusText" class="t-16 text-zinc-200">Stopped</span>
           </div>
         </div>
       </header>
 
-      <!-- Subheader -->
-      <div class="mt-4 flex items-center justify-between gap-4">
+      <!-- STREAM CONTROL STRIP -->
+      <section class="mt-5 rounded-3xl border border-zinc-800/70 bg-zinc-900/35 backdrop-blur overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+        <div class="px-6 py-5">
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+            </div>
+
+            <div class="flex gap-3">
+              <button id="btnStartStream" class="rounded-2xl bg-emerald-500/15 px-5 py-3 t-16 font-medium text-emerald-200 ring-1 ring-emerald-500/25 hover:ring-emerald-500/60">
+                ▶ Start Streaming
+              </button>
+              <button id="btnStopStream" class="rounded-2xl bg-rose-500/15 px-5 py-3 t-16 font-medium text-rose-200 ring-1 ring-rose-500/25 hover:ring-rose-500/60">
+                ■ Stop Streaming
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CENTERED PARTNER PROOF STRIP -->
+      <section class="mt-5 rounded-3xl border border-zinc-800/70 bg-zinc-900/35 backdrop-blur overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+        <div class="px-6 py-5">
+          <div class="text-center">
+            <div class="t-22 font-semibold text-zinc-100">
+              Powered by <span class="text-emerald-300">Confluent Cloud Streaming</span> + <span class="text-violet-300">Vertex AI Intelligence</span>
+            </div>
+            <div class="t-14 text-zinc-400 mt-2">
+              Agentic video intelligence - continuously observing, escalating, acting, and answering “why” from a trusted audit trail.
+            </div>
+          </div>
+
+          <div class="mt-5 grid grid-cols-1 md:grid-cols-4 gap-4 items-center text-center">
+            <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 px-4 py-3">
+              <div class="t-12 text-zinc-500">Streaming</div>
+              <div class="t-16 text-zinc-100 font-semibold" id="metaStreaming">Confluent Cloud</div>
+            </div>
+            <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 px-4 py-3">
+              <div class="t-12 text-zinc-500">AI</div>
+              <div class="t-16 text-zinc-100 font-semibold" id="metaAI">Vertex AI (—)</div>
+            </div>
+            <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 px-4 py-3">
+              <div class="t-12 text-zinc-500">Schema</div>
+              <div class="t-16 text-zinc-100 font-semibold" id="metaSchema">Schema Registry (—)</div>
+            </div>
+            <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 px-4 py-3">
+              <div class="t-12 text-zinc-500">Kafka</div>
+              <div class="t-16 text-zinc-100 font-semibold" id="metaKafka">—</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- KPI STRIP -->
+      <section class="mt-5 rounded-3xl border border-zinc-800/70 bg-zinc-900/30 backdrop-blur overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+        <div class="px-6 py-5">
+          <div class="flex items-center justify-between gap-4">
+            <div>
+              <div class="t-18 font-semibold text-zinc-100">Operational KPIs</div>
+              <div class="t-14 text-zinc-400">Computed from the audit log (last 24 hours)</div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <button id="btnRefreshKpi" class="rounded-2xl bg-zinc-950/40 px-4 py-2 t-16 ring-1 ring-zinc-800 hover:ring-zinc-600">
+                Refresh
+              </button>
+            </div>
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 px-4 py-3">
+              <div class="t-12 text-zinc-500">Critical Incidents</div>
+              <div class="t-22 text-rose-200 font-semibold" id="kpiStop24h">—</div>
+              <div class="t-14 text-zinc-400 mt-1" id="kpiStopLast">Last: —</div>
+            </div>
+
+            <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 px-4 py-3">
+              <div class="t-12 text-zinc-500">Alerts</div>
+              <div class="t-22 text-amber-200 font-semibold" id="kpiAlert24h">—</div>
+              <div class="t-14 text-zinc-400 mt-1">Last 24h</div>
+            </div>
+
+            <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 px-4 py-3">
+              <div class="t-12 text-zinc-500">Decisions</div>
+              <div class="t-22 text-violet-200 font-semibold" id="kpiDec24h">—</div>
+              <div class="t-14 text-zinc-400 mt-1">Last 24h</div>
+            </div>
+
+            <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 px-4 py-3">
+              <div class="t-12 text-zinc-500">Observations</div>
+              <div class="t-22 text-sky-200 font-semibold" id="kpiObs24h">—</div>
+              <div class="t-14 text-zinc-400 mt-1">Last 24h</div>
+            </div>
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 px-4 py-3">
+              <div class="t-14 font-semibold text-zinc-100">By Use-Case (Last 24h)</div>
+              <div class="mt-3 space-y-2 t-16 text-zinc-200">
+                <div>Security — Stop: <span class="text-rose-200 font-semibold" id="kpiStopSec">—</span> • Alerts: <span class="text-amber-200 font-semibold" id="kpiAlertSec">—</span></div>
+                <div>Assembly — Stop: <span class="text-rose-200 font-semibold" id="kpiStopAsm">—</span> • Alerts: <span class="text-amber-200 font-semibold" id="kpiAlertAsm">—</span></div>
+              </div>
+            </div>
+
+            <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 px-4 py-3">
+              <div class="t-14 font-semibold text-zinc-100">Priority Distribution (Last 24h)</div>
+              <div class="mt-3 space-y-2 t-16 text-zinc-200">
+                <div>P1: <span class="font-semibold text-rose-200" id="kpiP1">—</span></div>
+                <div>P2: <span class="font-semibold text-amber-200" id="kpiP2">—</span></div>
+                <div>P3: <span class="font-semibold text-zinc-200" id="kpiP3">—</span></div>
+              </div>
+            </div>
+
+            <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 px-4 py-3">
+              <div class="t-14 font-semibold text-zinc-100">Top Rules (Decisions Last 24h)</div>
+              <div class="mt-3 space-y-2 t-16 text-zinc-200" id="kpiRules">
+                <div class="t-16 text-zinc-400">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SUBHEADER -->
+      <div class="mt-6 flex items-center justify-between gap-4">
         <div class="min-w-0">
-          <div id="cameraTitle" class="t-14 font-semibold text-zinc-100 truncate">Security Feed</div>
-          <div id="subtitle" class="t-12 text-zinc-400 mt-1 truncate">
+          <div id="cameraTitle" class="t-18 font-semibold text-zinc-100 truncate">Security Feed</div>
+          <div id="subtitle" class="t-16 text-zinc-400 mt-1 truncate">
             Detect restricted-zone / walkway violations and open panel/guard while machine is operating.
           </div>
         </div>
 
         <div class="flex items-center gap-2 shrink-0">
-          <button id="btnReplay" class="rounded-2xl bg-zinc-900/60 px-4 py-2 t-14 ring-1 ring-zinc-800 hover:ring-zinc-600">
+          <button id="btnReplay" class="rounded-2xl bg-zinc-950/40 px-4 py-2 t-16 ring-1 ring-zinc-800 hover:ring-zinc-600">
             Replay
           </button>
-          <button id="btnClear" class="rounded-2xl bg-zinc-900/60 px-4 py-2 t-14 ring-1 ring-zinc-800 hover:ring-zinc-600">
+          <button id="btnClear" class="rounded-2xl bg-zinc-950/40 px-4 py-2 t-16 ring-1 ring-zinc-800 hover:ring-zinc-600">
             Clear
           </button>
         </div>
@@ -94,12 +227,12 @@ def _ui_html() -> str:
       <main class="mt-6 space-y-6">
         <!-- Video Card -->
         <section class="rounded-3xl border border-zinc-800/70 bg-zinc-900/30 backdrop-blur overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
-          <div class="px-5 py-4 flex items-center justify-between border-b border-zinc-800/70">
+          <div class="px-6 py-5 flex items-center justify-between border-b border-zinc-800/70">
             <div class="min-w-0">
-              <div class="t-12 text-zinc-400">Video</div>
-              <div class="t-14 font-semibold text-zinc-100 mt-0.5 truncate" id="videoTitle">Live camera</div>
+              <div class="t-14 text-zinc-400">Video</div>
+              <div class="t-18 font-semibold text-zinc-100 mt-0.5 truncate" id="videoTitle">Live camera</div>
             </div>
-            <div class="t-12 text-zinc-400 hidden sm:block">Clip → Observe → Decide → Act → Audit</div>
+            <div class="t-14 text-zinc-400 hidden sm:block">Clip → Observe → Decide → Act → Audit</div>
           </div>
 
           <div class="bg-black">
@@ -109,63 +242,55 @@ def _ui_html() -> str:
           </div>
         </section>
 
-        <!-- 3 Panels: fill width -->
+        <!-- 3 Panels -->
         <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <!-- Feed -->
           <div class="rounded-3xl border border-zinc-800/70 bg-zinc-900/30 backdrop-blur overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)] flex flex-col min-h-0">
-            <div class="px-5 py-4 border-b border-zinc-800/70">
-              <div class="t-12 text-zinc-400">Event stream</div>
-              <div class="t-14 font-semibold text-zinc-100 mt-0.5">Observations • Decisions • Actions</div>
+            <div class="px-6 py-5 border-b border-zinc-800/70">
+              <div class="t-14 text-zinc-400">Event stream (Confluent Cloud)</div>
+              <div class="t-18 font-semibold text-zinc-100 mt-0.5">Observations • Decisions • Actions</div>
             </div>
-            <div id="feed" class="p-4 space-y-3 h-[520px] lg:h-[560px] overflow-auto"></div>
-            <div class="px-5 py-4 border-t border-zinc-800/70">
-              <div class="flex flex-wrap gap-2 t-12">
-                <span class="inline-flex items-center rounded-full bg-sky-500/10 text-sky-200 ring-1 ring-sky-500/20 px-2.5 py-1">Observation</span>
-                <span class="inline-flex items-center rounded-full bg-violet-500/10 text-violet-200 ring-1 ring-violet-500/20 px-2.5 py-1">Decision</span>
-                <span class="inline-flex items-center rounded-full bg-amber-500/10 text-amber-200 ring-1 ring-amber-500/20 px-2.5 py-1">Alert</span>
-                <span class="inline-flex items-center rounded-full bg-rose-500/10 text-rose-200 ring-1 ring-rose-500/20 px-2.5 py-1">Stop line</span>
-              </div>
-            </div>
+            <div id="feed" class="p-5 space-y-4 h-[560px] overflow-auto"></div>
           </div>
 
           <!-- Decision detail -->
           <div class="rounded-3xl border border-zinc-800/70 bg-zinc-900/30 backdrop-blur overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)] flex flex-col min-h-0">
-            <div class="px-5 py-4 border-b border-zinc-800/70">
-              <div class="t-12 text-zinc-400">Decision detail</div>
-              <div class="t-14 font-semibold text-zinc-100 mt-0.5">Latest decision breakdown</div>
+            <div class="px-6 py-5 border-b border-zinc-800/70">
+              <div class="t-14 text-zinc-400">Decision detail (Gemini Reasoning)</div>
+              <div class="t-18 font-semibold text-zinc-100 mt-0.5">Latest Decision Breakdown</div>
             </div>
-            <div class="p-4 h-[520px] lg:h-[560px] overflow-auto" id="thinkingPanel">
-              <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 p-4">
-                <div class="t-14 text-zinc-200">No decision yet.</div>
-                <div class="t-12 text-zinc-500 mt-2">Once a decision arrives, details appear here.</div>
+            <div class="p-5 h-[560px] overflow-auto" id="thinkingPanel">
+              <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 p-5">
+                <div class="t-16 text-zinc-200">No decision yet.</div>
+                <div class="t-14 text-zinc-500 mt-2">Once a decision arrives, details appear here.</div>
               </div>
             </div>
           </div>
 
           <!-- Chat -->
           <div class="rounded-3xl border border-zinc-800/70 bg-zinc-900/30 backdrop-blur overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)] flex flex-col min-h-0">
-            <div class="px-5 py-4 border-b border-zinc-800/70">
-              <div class="t-12 text-zinc-400">Audit chat</div>
-              <div class="t-14 font-semibold text-zinc-100 mt-0.5">Ask questions about events</div>
+            <div class="px-6 py-5 border-b border-zinc-800/70">
+              <div class="t-14 text-zinc-400">Audit Chat (Vertex Grounded)</div>
+              <div class="t-18 font-semibold text-zinc-100 mt-0.5">Ask Questions About Events...</div>
             </div>
 
-            <div id="chatLog" class="p-4 space-y-3 h-[410px] lg:h-[450px] overflow-auto"></div>
+            <div id="chatLog" class="p-5 space-y-4 h-[440px] overflow-auto"></div>
 
-            <form id="chatForm" class="p-4 border-t border-zinc-800/70 flex gap-2">
+            <form id="chatForm" class="p-5 border-t border-zinc-800/70 flex gap-2">
               <input
                 id="chatInput"
-                class="flex-1 rounded-2xl bg-zinc-950/60 px-4 py-3 t-14 ring-1 ring-zinc-800 focus:outline-none focus:ring-emerald-500/55"
+                class="flex-1 rounded-2xl bg-zinc-950/60 px-4 py-3 t-16 ring-1 ring-zinc-800 focus:outline-none focus:ring-emerald-500/55"
                 placeholder="Ask: Why did we stop the line? Which clip shows it?"
               />
               <button
-                class="rounded-2xl bg-emerald-500/15 px-5 py-3 t-14 font-medium text-emerald-200 ring-1 ring-emerald-500/25 hover:ring-emerald-500/60"
+                class="rounded-2xl bg-emerald-500/15 px-5 py-3 t-16 font-medium text-emerald-200 ring-1 ring-emerald-500/25 hover:ring-emerald-500/60"
                 type="submit"
               >
                 Send
               </button>
             </form>
 
-            <div class="px-5 pb-4 t-12 text-zinc-500">
+            <div class="px-6 pb-5 t-14 text-zinc-500">
               Answers are grounded in the audit log.
             </div>
           </div>
@@ -173,11 +298,11 @@ def _ui_html() -> str:
       </main>
     </div>
 
+    <!-- Toast notifications -->
+    <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-3 w-[420px] max-w-[92vw]"></div>
+
     <script>
-      // ----------------------------
-      // State
-      // ----------------------------
-      let useCase = "security"; // "security" | "assembly"
+      let useCase = "security";
       let seen = new Set();
       let traceToGcs = new Map();
       let latestDecision = null;
@@ -187,6 +312,10 @@ def _ui_html() -> str:
 
       const btnClear = document.getElementById("btnClear");
       const btnReplay = document.getElementById("btnReplay");
+      const btnRefreshKpi = document.getElementById("btnRefreshKpi");
+
+      const btnStartStream = document.getElementById("btnStartStream");
+      const btnStopStream = document.getElementById("btnStopStream");
 
       const videoEl = document.getElementById("video");
       const videoSrc = document.getElementById("videoSrc");
@@ -202,49 +331,232 @@ def _ui_html() -> str:
       const chatForm = document.getElementById("chatForm");
       const chatInput = document.getElementById("chatInput");
 
+      const statusDot = document.getElementById("statusDot");
+      const statusText = document.getElementById("statusText");
+
       function escapeHtml(s) {
         return (s || "").replace(/[&<>"']/g, (c) => ({
           "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
         }[c]));
       }
 
-      function setUseCase(next) {
-        useCase = next;
-
-        const active = "bg-zinc-50/10 text-zinc-50";
-        const inactive = "text-zinc-200";
-
-        if (useCase === "security") {
-          ucSecurity.className = "px-4 py-2 t-14 font-medium " + active;
-          ucAssembly.className = "px-4 py-2 t-14 font-medium hover:bg-zinc-800/60 " + inactive;
-          subtitle.textContent = "Detect restricted-zone / walkway violations and open panel/guard while machine is operating.";
-          cameraTitle.textContent = "Security Feed";
-          videoTitle.textContent = "Industrial floor • Security camera";
-        } else {
-          ucAssembly.className = "px-4 py-2 t-14 font-medium " + active;
-          ucSecurity.className = "px-4 py-2 t-14 font-medium hover:bg-zinc-800/60 " + inactive;
-          subtitle.textContent = "Detect SOP compliance across a station session and trigger interventions when steps are missed.";
-          cameraTitle.textContent = "Assembly • Station S4";
-          videoTitle.textContent = "Assembly line • Station camera";
+      function fmtIsoShort(iso) {
+        if (!iso) return "—";
+        try {
+          const d = new Date(iso);
+          return d.toISOString().replace("T"," ").slice(0,16);
+        } catch (_) {
+          return iso;
         }
+      }
 
-        videoSrc.src = "/video?use_case=" + encodeURIComponent(useCase);
-        videoEl.load();
-        videoEl.play();
+      function toast(html, ttlMs = 6500) {
+        const container = document.getElementById("toastContainer");
+        if (!container) return;
 
-        // reset UI state
-        feedEl.innerHTML = "";
-        seen = new Set();
-        traceToGcs = new Map();
-        latestDecision = null;
-        renderDecisionPanel(null);
+        const el = document.createElement("div");
+        el.className =
+          "rounded-2xl bg-zinc-950/90 ring-1 ring-rose-500/40 shadow-lg p-4 backdrop-blur " +
+          "animate-[fadeIn_.15s_ease-out]";
 
-        poll();
+        el.innerHTML = html;
+
+        // Dismiss on click
+        el.addEventListener("click", () => {
+          try { el.remove(); } catch (_) {}
+        });
+
+        container.prepend(el);
+
+        // Auto-dismiss
+        setTimeout(() => {
+          try { el.remove(); } catch (_) {}
+        }, ttlMs);
+      }
+
+      function isStopLineDecision(payload) {
+        const actions = Array.isArray(payload?.recommended_actions) ? payload.recommended_actions : [];
+        if (!actions.length) return false;
+        const t = String(actions[0]?.type || "").toLowerCase();
+        return t === "stop_line";
+      }
+
+      function isStopLineAction(payload) {
+        const t = String(payload?.action?.type || "").toLowerCase();
+        return t === "stop_line";
       }
 
       function pill(label, cls) {
         return `<span class="inline-flex items-center rounded-full px-2.5 py-1 t-12 ring-1 ${cls}">${escapeHtml(label)}</span>`;
       }
+
+      function gcsToConsoleUrl(gsUri) {
+        if (!gsUri || typeof gsUri !== "string") return "";
+        if (!gsUri.startsWith("gs://")) return "";
+        const rest = gsUri.slice(5);
+        const slash = rest.indexOf("/");
+        const bucket = slash >= 0 ? rest.slice(0, slash) : rest;
+        const objectPath = slash >= 0 ? rest.slice(slash + 1) : "";
+        if (!bucket) return "";
+        const enc = encodeURIComponent(objectPath);
+        return `https://console.cloud.google.com/storage/browser/_details/${encodeURIComponent(bucket)}/${enc}`;
+      }
+
+      function clipLinksHtml(traceId) {
+        const gs = traceToGcs.get(traceId) || "";
+        if (!gs) return "";
+        const consoleUrl = gcsToConsoleUrl(gs);
+        const gsEsc = escapeHtml(gs);
+
+        const a = consoleUrl
+          ? `<a class="text-emerald-300 hover:text-emerald-200 underline decoration-emerald-500/30 hover:decoration-emerald-300/60" href="${consoleUrl}" target="_blank" rel="noreferrer">Open clip</a>`
+          : "";
+
+        return `
+          <div class="mt-3 t-14 text-zinc-400">
+            ${a ? a + `<span class="mx-2 text-zinc-700">•</span>` : ""}
+            <span class="font-mono">${gsEsc}</span>
+          </div>
+        `;
+      }
+
+      function maybeToastCritical(ev) {
+        if (!ev || !ev.payload) return;
+        const kind = ev.kind || "";
+        const payload = ev.payload || {};
+        const traceId = ev.trace_id || "";
+        const ts = ev.ts || "";
+
+        let actionMsg = "";
+        let priority = "";
+
+        if (kind === "decision" && isStopLineDecision(payload)) {
+          const a0 = (payload.recommended_actions || [])[0] || {};
+          actionMsg = String(a0.message || "Stop line recommended.");
+          priority = String(a0.priority || "");
+        } else if (kind === "action" && isStopLineAction(payload)) {
+          const a = payload.action || {};
+          actionMsg = String(a.message || "Stop line executed.");
+          priority = String(a.priority || "");
+        } else {
+          return;
+        }
+
+        const clipHtml = clipLinksHtml(traceId);
+        const badge = `<span class="inline-flex items-center rounded-full px-2.5 py-1 t-12 ring-1 bg-rose-500/15 text-rose-200 ring-rose-500/25">CRITICAL • STOP LINE</span>`;
+
+        toast(`
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="t-16 font-semibold text-zinc-100">Critical incident detected</div>
+              <div class="t-14 text-zinc-400 mt-1">${escapeHtml(ts)}</div>
+            </div>
+            <div class="shrink-0">${badge}</div>
+          </div>
+
+          <div class="mt-3 t-16 text-zinc-100 whitespace-pre-wrap">${escapeHtml(actionMsg)}</div>
+
+          ${clipHtml ? `<div class="mt-3">${clipHtml}</div>` : ""}
+
+          <div class="mt-3 t-14 text-zinc-500">
+            Click to dismiss
+          </div>
+        `);
+      }
+
+      async function loadMeta() {
+        try {
+          const r = await fetch("/meta");
+          const m = await r.json();
+
+          document.getElementById("metaKafka").textContent = m.kafka_bootstrap || "—";
+          const sr = m.schema_registry || "—";
+          document.getElementById("metaSchema").textContent = "Schema Registry (" + sr + ")";
+
+          const obsModel = m.vertex?.observer_model || "gemini";
+          const thinkModel = m.vertex?.thinker_model || "gemini";
+          document.getElementById("metaAI").textContent = "Vertex AI (" + obsModel + " / " + thinkModel + ")";
+
+          document.getElementById("metaStreaming").textContent = "Confluent Cloud";
+        } catch (e) {}
+      }
+
+      async function loadKpi() {
+        try {
+          const r = await fetch("/kpi");
+          const k = await r.json();
+
+          document.getElementById("kpiStop24h").textContent = String(k.stop_line_24h ?? "—");
+          document.getElementById("kpiAlert24h").textContent = String(k.alert_24h ?? "—");
+          document.getElementById("kpiDec24h").textContent = String(k.decisions_24h ?? "—");
+          document.getElementById("kpiObs24h").textContent = String(k.observations_24h ?? "—");
+
+          document.getElementById("kpiStopLast").textContent = "Last: " + fmtIsoShort(k.last_stop_line_ts);
+
+          document.getElementById("kpiStopSec").textContent = String(k.by_use_case?.security?.stop_line ?? "0");
+          document.getElementById("kpiAlertSec").textContent = String(k.by_use_case?.security?.alert ?? "0");
+          document.getElementById("kpiStopAsm").textContent = String(k.by_use_case?.assembly?.stop_line ?? "0");
+          document.getElementById("kpiAlertAsm").textContent = String(k.by_use_case?.assembly?.alert ?? "0");
+
+          document.getElementById("kpiP1").textContent = String(k.priorities?.P1 ?? "0");
+          document.getElementById("kpiP2").textContent = String(k.priorities?.P2 ?? "0");
+          document.getElementById("kpiP3").textContent = String(k.priorities?.P3 ?? "0");
+
+          const rulesEl = document.getElementById("kpiRules");
+          rulesEl.innerHTML = "";
+          const rules = Array.isArray(k.top_rules) ? k.top_rules : [];
+          if (!rules.length) {
+            rulesEl.innerHTML = `<div class="t-16 text-zinc-400">—</div>`;
+          } else {
+            rules.slice(0,5).forEach(r => {
+              const row = document.createElement("div");
+              row.className = "t-16 text-zinc-200";
+              row.innerHTML = `<span class="text-zinc-500">•</span> ${escapeHtml(r.rule_id)} <span class="text-zinc-500">(${r.count})</span>`;
+              rulesEl.appendChild(row);
+            });
+          }
+        } catch (e) {}
+      }
+
+      async function refreshStreamStatus() {
+        try {
+          const r = await fetch("/stream/status");
+          const s = await r.json();
+          const running = !!s.running?.[useCase];
+
+          if (running) {
+            statusDot.className = "h-2 w-2 rounded-full bg-emerald-400";
+            statusText.textContent = "Streaming";
+            btnStartStream.disabled = true;
+            btnStopStream.disabled = false;
+          } else {
+            statusDot.className = "h-2 w-2 rounded-full bg-rose-400";
+            statusText.textContent = "Stopped";
+            btnStartStream.disabled = false;
+            btnStopStream.disabled = true;
+          }
+        } catch (e) {}
+      }
+
+      btnStartStream.addEventListener("click", async () => {
+        btnStartStream.disabled = true;
+        await fetch("/stream/start", {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({use_case: useCase})
+        });
+        refreshStreamStatus();
+      });
+
+      btnStopStream.addEventListener("click", async () => {
+        btnStopStream.disabled = true;
+        await fetch("/stream/stop", {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({use_case: useCase})
+        });
+        refreshStreamStatus();
+      });
 
       function decisionSubtype(payload) {
         const actions = Array.isArray(payload?.recommended_actions) ? payload.recommended_actions : [];
@@ -294,18 +606,6 @@ def _ui_html() -> str:
         return "";
       }
 
-      function gcsToConsoleUrl(gsUri) {
-        if (!gsUri || typeof gsUri !== "string") return "";
-        if (!gsUri.startsWith("gs://")) return "";
-        const rest = gsUri.slice(5);
-        const slash = rest.indexOf("/");
-        const bucket = slash >= 0 ? rest.slice(0, slash) : rest;
-        const objectPath = slash >= 0 ? rest.slice(slash + 1) : "";
-        if (!bucket) return "";
-        const enc = encodeURIComponent(objectPath);
-        return `https://console.cloud.google.com/storage/browser/_details/${encodeURIComponent(bucket)}/${enc}`;
-      }
-
       function learnClipUri(ev) {
         const kind = ev.kind || "";
         const traceId = ev.trace_id || "";
@@ -326,29 +626,11 @@ def _ui_html() -> str:
         }
       }
 
-      function clipLinksHtml(traceId) {
-        const gs = traceToGcs.get(traceId) || "";
-        if (!gs) return "";
-        const consoleUrl = gcsToConsoleUrl(gs);
-        const gsEsc = escapeHtml(gs);
-
-        const a = consoleUrl
-          ? `<a class="text-emerald-300 hover:text-emerald-200 underline decoration-emerald-500/30 hover:decoration-emerald-300/60" href="${consoleUrl}" target="_blank" rel="noreferrer">Open clip</a>`
-          : "";
-
-        return `
-          <div class="mt-3 t-12 text-zinc-400">
-            ${a ? a + `<span class="mx-2 text-zinc-700">•</span>` : ""}
-            <span class="font-mono">${gsEsc}</span>
-          </div>
-        `;
-      }
-
       function kvRow(k, v) {
         return `
           <div class="flex items-start justify-between gap-4">
-            <div class="t-12 text-zinc-400">${escapeHtml(k)}</div>
-            <div class="t-12 text-zinc-200 text-right break-words">${escapeHtml(String(v ?? ""))}</div>
+            <div class="t-14 text-zinc-400">${escapeHtml(k)}</div>
+            <div class="t-14 text-zinc-200 text-right break-words">${escapeHtml(String(v ?? ""))}</div>
           </div>
         `;
       }
@@ -356,9 +638,9 @@ def _ui_html() -> str:
       function renderDecisionPanel(decEv) {
         if (!decEv) {
           thinkingPanel.innerHTML = `
-            <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 p-4">
-              <div class="t-14 text-zinc-200">No decision yet.</div>
-              <div class="t-12 text-zinc-500 mt-2">Once a decision arrives, details appear here.</div>
+            <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 p-5">
+              <div class="t-16 text-zinc-200">No Decision Yet.</div>
+              <div class="t-14 text-zinc-500 mt-2">Once a decision arrives, details appear here.</div>
             </div>
           `;
           return;
@@ -371,6 +653,7 @@ def _ui_html() -> str:
         const evidence = payload.evidence || {};
         const actions = Array.isArray(payload.recommended_actions) ? payload.recommended_actions : [];
         const action0 = actions.length ? actions[0] : {};
+        const citations = Array.isArray(rationale?.citations) ? rationale.citations : [];
 
         const actionType = String(action0?.type || "");
         const actionMsg = String(action0?.message || "");
@@ -386,37 +669,50 @@ def _ui_html() -> str:
         const clipLink = clipLinksHtml(traceId);
 
         thinkingPanel.innerHTML = `
-          <div class="rounded-2xl bg-zinc-950/45 ring-1 ring-zinc-800/70 p-4">
+          <div class="rounded-2xl bg-zinc-950/45 ring-1 ring-zinc-800/70 p-5">
             <div class="flex items-start justify-between gap-3">
               <div>
-                <div class="t-14 font-semibold text-zinc-100">Decision</div>
-                <div class="t-12 text-zinc-500 mt-0.5">${escapeHtml(decEv.ts || "")} • trace ${escapeHtml((traceId || "").slice(0,8))}</div>
+                <div class="t-18 font-semibold text-zinc-100">Decision</div>
+                <div class="t-14 text-zinc-500 mt-1">${escapeHtml(decEv.ts || "")} • trace ${escapeHtml((traceId || "").slice(0,8))}</div>
               </div>
               <div class="shrink-0">${rightPill("decision", payload)}</div>
             </div>
 
-            <div class="mt-4 space-y-3">
-              <div class="rounded-xl bg-zinc-950/35 ring-1 ring-zinc-800/70 p-3">
-                <div class="t-12 text-zinc-400">Recommended action</div>
-                <div class="mt-1 t-14 font-semibold text-zinc-100">${escapeHtml(actionType || "unknown")} ${priority ? `• ${escapeHtml(priority)}` : ""}</div>
-                <div class="mt-1 t-14 text-zinc-200">${escapeHtml(actionMsg || "—")}</div>
+            <div class="mt-4 space-y-4">
+              <div class="rounded-xl bg-zinc-950/35 ring-1 ring-zinc-800/70 p-4">
+                <div class="t-14 text-zinc-400">Recommended action</div>
+                <div class="mt-1 t-18 font-semibold text-zinc-100">${escapeHtml(actionType || "unknown")} ${priority ? `• ${escapeHtml(priority)}` : ""}</div>
+                <div class="mt-1 t-16 text-zinc-200">${escapeHtml(actionMsg || "—")}</div>
               </div>
 
-              <div class="rounded-xl bg-zinc-950/35 ring-1 ring-zinc-800/70 p-3 space-y-2">
-                <div class="t-12 text-zinc-400">Assessment</div>
+              <div class="rounded-xl bg-zinc-950/35 ring-1 ring-zinc-800/70 p-4 space-y-2">
+                <div class="t-14 text-zinc-400">Assessment</div>
                 ${sev ? kvRow("severity", sev) : ""}
                 ${conf !== undefined ? kvRow("confidence", conf) : ""}
                 ${rule ? kvRow("rule_id", rule) : ""}
                 ${risk ? kvRow("risk", risk) : ""}
               </div>
 
-              <div class="rounded-xl bg-zinc-950/35 ring-1 ring-zinc-800/70 p-3">
-                <div class="t-12 text-zinc-400">Rationale</div>
-                <div class="mt-1 t-14 text-zinc-200">${escapeHtml(String(rationale?.short || "—"))}</div>
+              <div class="rounded-xl bg-zinc-950/35 ring-1 ring-zinc-800/70 p-4">
+                <div class="t-14 text-zinc-400">Rationale</div>
+                <div class="mt-1 t-16 text-zinc-200">${escapeHtml(String(rationale?.short || "—"))}</div>
               </div>
 
-              <div class="rounded-xl bg-zinc-950/35 ring-1 ring-zinc-800/70 p-3 space-y-2">
-                <div class="t-12 text-zinc-400">Evidence</div>
+              ${citations.length ? `
+              <div class="rounded-xl bg-zinc-950/35 ring-1 ring-zinc-800/70 p-4">
+                <div class="t-14 text-zinc-400">Citations</div>
+                <div class="mt-2 space-y-2">
+                  ${citations.map(c => `
+                    <div class="t-14 text-zinc-200">
+                      <span class="text-zinc-500">•</span>
+                      ${escapeHtml(String(c.step_id || c.chunk_id || "source"))}
+                    </div>
+                  `).join("")}
+                </div>
+              </div>` : ""}
+
+              <div class="rounded-xl bg-zinc-950/35 ring-1 ring-zinc-800/70 p-4 space-y-2">
+                <div class="t-14 text-zinc-400">Evidence</div>
                 ${kvRow("reason", reason || "—")}
                 ${clipRange ? kvRow("clip_range", `${clipRange[0]} → ${clipRange[1]}`) : kvRow("clip_range", "—")}
                 ${clipLink ? `<div class="mt-2">${clipLink}</div>` : ""}
@@ -442,18 +738,18 @@ def _ui_html() -> str:
         const clickHint = kind === "decision" ? `data-click="decision"` : "";
 
         return `
-          <div class="rounded-2xl bg-zinc-950/45 ring-1 ring-zinc-800/70 p-4 hover:ring-zinc-600/80 transition cursor-${kind === "decision" ? "pointer" : "default"}"
+          <div class="rounded-2xl bg-zinc-950/45 ring-1 ring-zinc-800/70 p-5 hover:ring-zinc-600/80 transition cursor-${kind === "decision" ? "pointer" : "default"}"
                ${clickHint}
                data-audit-id="${escapeHtml(ev.audit_id || "")}">
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
-                <div class="t-14 font-semibold text-zinc-100">${escapeHtml(kind.charAt(0).toUpperCase() + kind.slice(1))}</div>
-                <div class="t-12 text-zinc-500 mt-0.5">${escapeHtml(ts)} • ${escapeHtml(kind)} • trace ${escapeHtml(traceShort)}</div>
+                <div class="t-18 font-semibold text-zinc-100">${escapeHtml(kind.charAt(0).toUpperCase() + kind.slice(1))}</div>
+                <div class="t-14 text-zinc-500 mt-1">${escapeHtml(ts)} • ${escapeHtml(kind)} • trace ${escapeHtml(traceShort)}</div>
               </div>
               <div class="shrink-0">${topRight}</div>
             </div>
 
-            <div class="mt-3 t-14 text-zinc-200 whitespace-pre-wrap">${escapeHtml(desc)}</div>
+            <div class="mt-3 t-16 text-zinc-200 whitespace-pre-wrap">${escapeHtml(desc)}</div>
             ${link}
           </div>
         `;
@@ -480,16 +776,15 @@ def _ui_html() -> str:
                 latestDecision = ev;
                 renderDecisionPanel(latestDecision);
               }
+
+              if (relevantToUseCase(ev.payload || {})) {
+                maybeToastCritical(ev);
+              }
             }
             seen.add(auditId);
           });
 
-          document.getElementById("statusDot").className = "h-2 w-2 rounded-full bg-emerald-400";
-          document.getElementById("statusText").textContent = "Live";
-        } catch (e) {
-          document.getElementById("statusDot").className = "h-2 w-2 rounded-full bg-rose-400";
-          document.getElementById("statusText").textContent = "Disconnected";
-        }
+        } catch (e) {}
       }
 
       // Click-to-pin decision
@@ -524,6 +819,42 @@ def _ui_html() -> str:
         videoEl.play();
       });
 
+      btnRefreshKpi.addEventListener("click", loadKpi);
+
+      function setUseCase(next) {
+        useCase = next;
+
+        const active = "bg-zinc-50/10 text-zinc-50";
+        const inactive = "text-zinc-200";
+
+        if (useCase === "security") {
+          ucSecurity.className = "px-4 py-2 t-16 font-medium " + active;
+          ucAssembly.className = "px-4 py-2 t-16 font-medium hover:bg-zinc-800/60 " + inactive;
+          subtitle.textContent = "Real-time Video Monitoring for Safety and Security.";
+          cameraTitle.textContent = "Security Feed";
+          videoTitle.textContent = "Industrial Floor • Security Camera Feed";
+        } else {
+          ucAssembly.className = "px-4 py-2 t-16 font-medium " + active;
+          ucSecurity.className = "px-4 py-2 t-16 font-medium hover:bg-zinc-800/60 " + inactive;
+          subtitle.textContent = "Session-based Video Monitoring for SOP and Process Compliance.";
+          cameraTitle.textContent = "Assembly • Station S4";
+          videoTitle.textContent = "Assembly Line • Station Camera Feed";
+        }
+
+        videoSrc.src = "/video?use_case=" + encodeURIComponent(useCase);
+        videoEl.load();
+        videoEl.play();
+
+        feedEl.innerHTML = "";
+        seen = new Set();
+        traceToGcs = new Map();
+        latestDecision = null;
+        renderDecisionPanel(null);
+
+        refreshStreamStatus();
+        poll();
+      }
+
       ucSecurity.addEventListener("click", () => setUseCase("security"));
       ucAssembly.addEventListener("click", () => setUseCase("assembly"));
 
@@ -537,8 +868,8 @@ def _ui_html() -> str:
         const html = `
           <div class="flex ${align}">
             <div class="max-w-[92%] rounded-3xl px-4 py-3 ${bubble}">
-              <div class="t-11 text-zinc-400 mb-1">${label}</div>
-              <div class="t-14 whitespace-pre-wrap">${escapeHtml(text)}</div>
+              <div class="t-12 text-zinc-400 mb-1">${label}</div>
+              <div class="t-16 whitespace-pre-wrap">${escapeHtml(text)}</div>
             </div>
           </div>
         `;
@@ -566,10 +897,15 @@ def _ui_html() -> str:
         }
       });
 
-      // Start
+      loadMeta();
+      loadKpi();
       setUseCase("security");
       poll();
+      refreshStreamStatus();
+
       setInterval(poll, 1000);
+      setInterval(loadKpi, 15000);
+      setInterval(refreshStreamStatus, 3000);
     </script>
   </body>
 </html>
@@ -582,16 +918,184 @@ def build_app(cfg: Settings) -> FastAPI:
     bq = bigquery.Client(project=cfg.gcp_project)
     table_id = f"{cfg.gcp_project}.{cfg.bigquery_dataset}.{cfg.bigquery_audit_table}"
 
+    stream_stop_events: dict[str, threading.Event] = {}
+    stream_threads: dict[str, threading.Thread] = {}
+    stream_running: dict[str, bool] = {"security": False, "assembly": False}
+
+    def _start_stream(use_case: str) -> None:
+        use_case = str(use_case or "").lower().strip()
+        if use_case not in ("security", "assembly"):
+            return
+        if stream_running.get(use_case):
+            return
+
+        ev = threading.Event()
+        stream_stop_events[use_case] = ev
+
+        if use_case == "security":
+            args = dict(
+                cfg=cfg,
+                video_path=cfg.security_video_path,
+                camera_id="cam-security-1",
+                use_case="security",
+                station_id=None,
+                sku_id=None,
+                max_clips=None,
+                stop_event=ev,
+            )
+        else:
+            args = dict(
+                cfg=cfg,
+                video_path=cfg.assembly_video_path,
+                camera_id="cam-assembly-s4",
+                use_case="assembly",
+                station_id="S4",
+                sku_id="S1345780",
+                max_clips=None,
+                stop_event=ev,
+            )
+
+        def job():
+            stream_running[use_case] = True
+            try:
+                publish_clips_from_video(**args)
+            finally:
+                stream_running[use_case] = False
+
+        t = threading.Thread(target=job, daemon=True)
+        stream_threads[use_case] = t
+        t.start()
+
+    def _stop_stream(use_case: str) -> None:
+        use_case = str(use_case or "").lower().strip()
+        ev = stream_stop_events.get(use_case)
+        if ev:
+            ev.set()
+
+    @app.get("/meta")
+    def meta():
+        def red(s: str) -> str:
+            if not s:
+                return ""
+            return s.replace("https://", "").replace("http://", "").split("@")[-1].split("/")[0]
+
+        return {
+            "confluent_cloud": True,
+            "kafka_bootstrap": red(cfg.kafka_bootstrap),
+            "schema_registry": red(cfg.schema_registry_url),
+            "topics": {
+                "clips": cfg.topic_clips,
+                "observations": cfg.topic_observations,
+                "sessions": cfg.topic_sessions,
+                "decisions": cfg.topic_decisions,
+                "actions": cfg.topic_actions,
+                "audit": cfg.topic_audit,
+            },
+            "vertex": {
+                "region": cfg.gcp_region,
+                "observer_model": cfg.gemini_observer_model,
+                "thinker_model": cfg.gemini_thinker_model,
+            },
+        }
+
+    @app.get("/stream/status")
+    def stream_status():
+        return {"running": stream_running}
+
+    @app.post("/stream/start")
+    def stream_start(req: StreamReq):
+        _start_stream(req.use_case)
+        return {"ok": True, "running": stream_running}
+
+    @app.post("/stream/stop")
+    def stream_stop(req: StreamReq):
+        _stop_stream(req.use_case)
+        return {"ok": True, "running": stream_running}
+
+    @app.get("/kpi")
+    def kpi():
+        q = f"""
+        WITH recent AS (
+          SELECT kind, ts, payload_json
+          FROM `{table_id}`
+          WHERE ts >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 24 HOUR)
+        ),
+        actions AS (
+          SELECT
+            ts,
+            JSON_VALUE(payload_json, '$.use_case') AS use_case,
+            JSON_VALUE(payload_json, '$.action.type') AS action_type,
+            JSON_VALUE(payload_json, '$.action.priority') AS priority
+          FROM recent
+          WHERE kind = 'action'
+        )
+        SELECT
+          (SELECT COUNT(*) FROM actions WHERE action_type = 'stop_line') AS stop_line_24h,
+          (SELECT COUNT(*) FROM actions WHERE action_type = 'alert') AS alert_24h,
+          (SELECT COUNT(*) FROM recent WHERE kind = 'decision') AS decisions_24h,
+          (SELECT COUNT(*) FROM recent WHERE kind = 'observation') AS observations_24h,
+          (SELECT MAX(ts) FROM actions WHERE action_type = 'stop_line') AS last_stop_line_ts,
+          (SELECT COUNT(*) FROM actions WHERE use_case = 'security' AND action_type = 'stop_line') AS stop_sec,
+          (SELECT COUNT(*) FROM actions WHERE use_case = 'security' AND action_type = 'alert') AS alert_sec,
+          (SELECT COUNT(*) FROM actions WHERE use_case = 'assembly' AND action_type = 'stop_line') AS stop_asm,
+          (SELECT COUNT(*) FROM actions WHERE use_case = 'assembly' AND action_type = 'alert') AS alert_asm,
+          (SELECT COUNT(*) FROM actions WHERE priority = 'P1') AS p1,
+          (SELECT COUNT(*) FROM actions WHERE priority = 'P2') AS p2,
+          (SELECT COUNT(*) FROM actions WHERE priority = 'P3') AS p3
+        """
+        rows = list(bq.query(q).result())
+        if not rows:
+            return {
+                "stop_line_24h": 0,
+                "alert_24h": 0,
+                "decisions_24h": 0,
+                "observations_24h": 0,
+                "last_stop_line_ts": None,
+                "by_use_case": {"security": {"stop_line": 0, "alert": 0}, "assembly": {"stop_line": 0, "alert": 0}},
+                "priorities": {"P1": 0, "P2": 0, "P3": 0},
+                "top_rules": [],
+            }
+
+        r = rows[0]
+
+        q_rules = f"""
+        WITH recent_decisions AS (
+          SELECT JSON_VALUE(payload_json, '$.assessment.rule_id') AS rule_id
+          FROM `{table_id}`
+          WHERE kind = 'decision'
+            AND ts >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 24 HOUR)
+        )
+        SELECT rule_id, COUNT(*) AS cnt
+        FROM recent_decisions
+        WHERE rule_id IS NOT NULL AND rule_id != ''
+        GROUP BY rule_id
+        ORDER BY cnt DESC
+        LIMIT 8
+        """
+        rules_rows = list(bq.query(q_rules).result())
+        top_rules = [{"rule_id": rr["rule_id"], "count": int(rr["cnt"])} for rr in rules_rows]
+
+        return {
+            "stop_line_24h": int(r["stop_line_24h"] or 0),
+            "alert_24h": int(r["alert_24h"] or 0),
+            "decisions_24h": int(r["decisions_24h"] or 0),
+            "observations_24h": int(r["observations_24h"] or 0),
+            "last_stop_line_ts": (r["last_stop_line_ts"].isoformat() if r["last_stop_line_ts"] else None),
+            "by_use_case": {
+                "security": {"stop_line": int(r["stop_sec"] or 0), "alert": int(r["alert_sec"] or 0)},
+                "assembly": {"stop_line": int(r["stop_asm"] or 0), "alert": int(r["alert_asm"] or 0)},
+            },
+            "priorities": {"P1": int(r["p1"] or 0), "P2": int(r["p2"] or 0), "P3": int(r["p3"] or 0)},
+            "top_rules": top_rules,
+        }
+
     @app.get("/ui", response_class=HTMLResponse)
     def ui():
         return _ui_html()
 
     @app.get("/video")
     def video(use_case: str = "security"):
-        if use_case == "assembly":
-            path = cfg.assembly_video_path
-        else:
-            path = cfg.security_video_path
+        path = cfg.assembly_video_path if use_case == "assembly" else cfg.security_video_path
         return FileResponse(path, media_type="video/mp4")
 
     @app.get("/recent")
@@ -604,14 +1108,14 @@ def build_app(cfg: Settings) -> FastAPI:
         """
         rows = bq.query(q).result()
         out = []
-        for r in rows:
+        for rr in rows:
             out.append(
                 {
-                    "audit_id": r["audit_id"],
-                    "ts": r["ts"].isoformat(),
-                    "kind": r["kind"],
-                    "trace_id": r["trace_id"],
-                    "payload": json.loads(r["payload_json"]),
+                    "audit_id": rr["audit_id"],
+                    "ts": rr["ts"].isoformat(),
+                    "kind": rr["kind"],
+                    "trace_id": rr["trace_id"],
+                    "payload": json.loads(rr["payload_json"]),
                 }
             )
         return out
@@ -634,4 +1138,5 @@ def build_app(cfg: Settings) -> FastAPI:
             "snippets": sr.snippets[:8],
             "snippets_count": len(sr.snippets),
         }
+
     return app

@@ -59,3 +59,4 @@ coverage.xml
 grep -E "*.mp4|*.avi|*.mov" .gitignoredata/videos/*.mp4
 data/videos/*.avi
 data/videos/*.mov
+data/videos/*.mp4

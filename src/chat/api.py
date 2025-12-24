@@ -475,7 +475,7 @@ def _ui_html() -> str:
 
           const obsModel = m.vertex?.observer_model || "gemini";
           const thinkModel = m.vertex?.thinker_model || "gemini";
-          document.getElementById("metaAI").textContent = "Vertex AI (" + obsModel + " / " + thinkModel + ")";
+          document.getElementById("metaAI").textContent = "Vertex AI (" + thinkModel + " / " + obsModel + ")";
 
           document.getElementById("metaStreaming").textContent = "Confluent Cloud";
         } catch (e) {}

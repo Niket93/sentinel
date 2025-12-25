@@ -21,6 +21,790 @@ class ChatIn(BaseModel):
 class StreamReq(BaseModel):
     use_case: str
 
+def _home_html(
+    linkedin_url: str,
+    github_url: str,
+    youtube_embed_url: str,
+) -> str:
+
+    return f"""
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Sentinel • Universal Video Intelligence</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      :root {{ color-scheme: dark; }}
+      html, body {{ height: 100%; }}
+
+      .t-12 {{ font-size: 12px; line-height: 18px; }}
+      .t-14 {{ font-size: 14px; line-height: 20px; }}
+      .t-16 {{ font-size: 16px; line-height: 24px; }}
+      .t-18 {{ font-size: 18px; line-height: 26px; }}
+      .t-22 {{ font-size: 22px; line-height: 30px; }}
+      .t-26 {{ font-size: 26px; line-height: 34px; }}
+
+      @keyframes fadeIn {{
+        from {{ opacity: 0; transform: translateY(-6px); }}
+        to {{ opacity: 1; transform: translateY(0); }}
+      }}
+    </style>
+  </head>
+
+  <body class="min-h-screen bg-zinc-950 text-zinc-50 antialiased">
+    <!-- Background (matches /ui) -->
+    <div class="fixed inset-0 -z-10">
+      <div class="absolute inset-0 bg-[radial-gradient(900px_circle_at_20%_10%,rgba(16,185,129,0.14),transparent_45%),radial-gradient(900px_circle_at_80%_0%,rgba(99,102,241,0.10),transparent_40%),radial-gradient(900px_circle_at_50%_90%,rgba(244,63,94,0.08),transparent_45%)]"></div>
+      <div class="absolute inset-0 opacity-20 bg-[linear-gradient(to_right,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:72px_72px]"></div>
+    </div>
+
+    <div class="w-full max-w-none px-4 sm:px-6 lg:px-10 2xl:px-12 py-6">
+
+      <!-- Header (same density/typography as /ui) -->
+      <header class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div class="leading-tight min-w-0">
+          <div class="t-26 font-semibold tracking-tight truncate">Sentinel</div>
+          <div class="t-16 text-zinc-300">
+            Agentic Video Intelligence Platform with <span class="text-emerald-300">Confluent</span> + <span class="text-violet-300">Vertex AI</span>
+          </div>
+          <div class="t-16 text-zinc-400 mt-2 max-w-5xl">
+            Vision → Decision → Action: Transform any video feed into governed event streams that drive real-time, explainable actions across manufacturing, healthcare, retail, logistics, and beyond, with an audit-grade evidence trail you can replay.
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 shrink-0">
+          <a href="/ui"
+            class="rounded-2xl bg-emerald-500/15 px-5 py-3 t-16 font-medium text-emerald-200 ring-1 ring-emerald-500/25 hover:ring-emerald-500/60">
+            Open Demo UI
+          </a>
+
+          <a href="{github_url}" target="_blank" rel="noreferrer noopener"
+            class="rounded-2xl bg-zinc-900/60 px-5 py-3 t-16 font-medium text-zinc-200 ring-1 ring-zinc-800 hover:ring-zinc-600">
+            GitHub
+          </a>
+
+          <a href="{linkedin_url}" target="_blank" rel="noreferrer noopener"
+            class="rounded-2xl bg-zinc-900/60 px-5 py-3 t-16 font-medium text-zinc-200 ring-1 ring-zinc-800 hover:ring-zinc-600">
+            LinkedIn
+          </a>
+        </div>
+      </header>
+
+      <!-- Hero banner panel -->
+      <section class="mt-5 rounded-3xl border border-zinc-800/70 bg-zinc-900/35 backdrop-blur overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+        <div class="px-6 py-5">
+          <div class="text-center">
+            <div class="t-22 font-semibold text-zinc-100">
+              Powered by <span class="text-emerald-300">Confluent Cloud Streaming</span> + <span class="text-violet-300">Vertex AI Intelligence</span>
+            </div>
+            <div class="t-16 text-zinc-400 mt-2">
+              Sentinel turns video into governed event streams and explainable actions - with replayable evidence.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- YouTube -->
+      <section class="mt-5 rounded-3xl border border-zinc-800/70 bg-zinc-900/30 backdrop-blur overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+        <div class="px-6 py-5 border-b border-zinc-800/70">
+          <div class="t-18 font-semibold text-zinc-100">🎬 Demo Video</div>
+        </div>
+        <div class="bg-black">
+          <div class="w-full aspect-video">
+            <iframe
+              class="w-full h-full"
+              src="{youtube_embed_url}"
+              title="Sentinel Demo Video"
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen>
+            </iframe>
+          </div>
+        </div>
+      </section>
+
+      <!-- Full content: no accordions, no shortening -->
+      <main class="mt-6 space-y-6">
+
+        <!-- Title block -->
+        <section class="rounded-3xl border border-zinc-800/70 bg-zinc-900/30 backdrop-blur overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+          <div class="px-6 py-6">
+            <div class="t-26 font-semibold tracking-tight text-zinc-100">Sentinel</div>
+            <div class="t-18 text-zinc-200 mt-1">Universal Video Intelligence Platform with Confluent + Vertex AI</div>
+            <div class="t-16 text-zinc-300 mt-3">
+              Vision → Decision → Action: Transform any video feed into governed event streams that drive real-time, explainable actions across manufacturing, healthcare, retail, logistics, and beyond, with an audit-grade evidence trail you can replay.
+            </div>
+          </div>
+        </section>
+
+        <!-- Inspiration -->
+        <section class="rounded-3xl border border-zinc-800/70 bg-zinc-900/30 backdrop-blur overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+          <div class="px-6 py-6 space-y-4">
+            <div>
+              <div class="t-22 font-semibold text-zinc-100">💡 Inspiration - The Problem We're Solving</div>
+              <div class="t-16 text-zinc-200 mt-3">
+                Organizations across every industry deploy thousands of cameras - factories, warehouses, hospitals, retail stores, construction sites, farms, energy infrastructure, and smart cities. Yet most footage remains reactive, reviewed only after incidents occur, when the damage is already done.
+              </div>
+              <div class="t-16 text-zinc-200 mt-4">The cost of waiting is universal and staggering:</div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+              <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 px-4 py-4">
+                <div class="t-12 text-zinc-500">Downtime</div>
+                <div class="t-16 text-zinc-100 font-semibold">$36K–$2.3M per hour</div>
+                <div class="t-14 text-zinc-400 mt-1">Siemens 2024</div>
+              </div>
+              <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 px-4 py-4">
+                <div class="t-12 text-zinc-500">Major outages</div>
+                <div class="t-16 text-zinc-100 font-semibold">54% &gt; $100K; 20% &gt; $1M</div>
+                <div class="t-14 text-zinc-400 mt-1">Uptime Institute 2024</div>
+              </div>
+              <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 px-4 py-4">
+                <div class="t-12 text-zinc-500">Safety incidents</div>
+                <div class="t-16 text-zinc-100 font-semibold">$176.5B annual injury costs</div>
+                <div class="t-14 text-zinc-400 mt-1">NSC 2023 • ~$43K per injury</div>
+              </div>
+              <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 px-4 py-4">
+                <div class="t-12 text-zinc-500">Operational impact</div>
+                <div class="t-16 text-zinc-100 font-semibold">90%+ &gt; $300K/hour</div>
+                <div class="t-14 text-zinc-400 mt-1">ITIC 2024</div>
+              </div>
+            </div>
+
+            <div class="t-16 text-zinc-200">
+              The opportunity: Video represents ~80% of global data by 2025 (175 zettabytes projected) - IDC/Seagate 2018, yet organizations across all industries struggle to operationalize multimodal AI in real-time with governance, cost control, and auditability.
+            </div>
+
+            <div class="t-16 text-zinc-200">
+              Sentinel closes that gap, not for one industry, but for every industry where visual monitoring matters.
+            </div>
+          </div>
+        </section>
+
+        <!-- What it does -->
+        <section class="rounded-3xl border border-zinc-800/70 bg-zinc-900/30 backdrop-blur overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+          <div class="px-6 py-6 space-y-6">
+            <div>
+              <div class="t-22 font-semibold text-zinc-100">🎯 What It Does</div>
+              <div class="t-16 text-zinc-200 mt-3">
+                Sentinel is a agentic video intelligence platform that continuously converts raw video into governed operational intelligence across any industry:
+              </div>
+            </div>
+
+            <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 p-5">
+              <div class="t-16 text-zinc-400">End-to-End Pipeline</div>
+              <pre class="mt-3 t-16 text-zinc-200 whitespace-pre-wrap font-mono">
+📹 Video Feed
+    ↓ (Motion Detection + Sampling)
+🔍 Observe (Gemini Multimodal Analysis)
+    ↓ (Structured JSON Observations)
+🧠 Think (Reasoning + Domain Knowledge Grounding via Vertex AI Search)
+    ↓ (Explainable Decisions with Citations)
+⚡ Act (Automated Alerts / Actions / webhooks)
+    ↓ (Deduped, Cooldown-Protected)
+📊 Audit + Real-Time KPIs (BigQuery + Flink SQL)
+              </pre>
+            </div>
+
+            <div>
+              <div class="t-18 font-semibold text-zinc-100">Cross-Industry Applications</div>
+              <div class="t-16 text-zinc-200 mt-2">The same architecture solves different problems across verticals:</div>
+
+              <div class="mt-4 overflow-x-auto rounded-2xl ring-1 ring-zinc-800/70">
+                <table class="min-w-[1100px] w-full bg-zinc-950/40">
+                  <thead class="text-left">
+                    <tr class="border-b border-zinc-800/70">
+                      <th class="px-4 py-3 t-16 text-zinc-300">Industry</th>
+                      <th class="px-4 py-3 t-16 text-zinc-300">Use Case</th>
+                      <th class="px-4 py-3 t-16 text-zinc-300">Detection</th>
+                      <th class="px-4 py-3 t-16 text-zinc-300">Action</th>
+                      <th class="px-4 py-3 t-16 text-zinc-300">Impact</th>
+                    </tr>
+                  </thead>
+                  <tbody class="t-16 text-zinc-200">
+                    <tr class="border-b border-zinc-800/50">
+                      <td class="px-4 py-3">Manufacturing</td>
+                      <td class="px-4 py-3">Equipment anomaly detection</td>
+                      <td class="px-4 py-3">Abnormal vibrations, leaks, smoke</td>
+                      <td class="px-4 py-3">Predictive maintenance alert</td>
+                      <td class="px-4 py-3">Prevent $2M/hour downtime</td>
+                    </tr>
+                    <tr class="border-b border-zinc-800/50">
+                      <td class="px-4 py-3">Healthcare</td>
+                      <td class="px-4 py-3">Patient safety monitoring</td>
+                      <td class="px-4 py-3">Fall detection, mobility issues</td>
+                      <td class="px-4 py-3">Immediate staff alert</td>
+                      <td class="px-4 py-3">Reduce adverse events</td>
+                    </tr>
+                    <tr class="border-b border-zinc-800/50">
+                      <td class="px-4 py-3">Retail</td>
+                      <td class="px-4 py-3">Queue &amp; service optimization</td>
+                      <td class="px-4 py-3">Long wait times, checkout bottlenecks</td>
+                      <td class="px-4 py-3">Staff reallocation</td>
+                      <td class="px-4 py-3">Improve customer experience</td>
+                    </tr>
+                    <tr class="border-b border-zinc-800/50">
+                      <td class="px-4 py-3">Logistics</td>
+                      <td class="px-4 py-3">Loading dock safety</td>
+                      <td class="px-4 py-3">Forklift near-misses, improper stacking</td>
+                      <td class="px-4 py-3">Stop operations, supervisor alert</td>
+                      <td class="px-4 py-3">Prevent $43K injuries</td>
+                    </tr>
+                    <tr class="border-b border-zinc-800/50">
+                      <td class="px-4 py-3">Agriculture</td>
+                      <td class="px-4 py-3">Crop &amp; livestock monitoring</td>
+                      <td class="px-4 py-3">Irrigation issues, animal distress</td>
+                      <td class="px-4 py-3">Automated intervention</td>
+                      <td class="px-4 py-3">Prevent yield loss</td>
+                    </tr>
+                    <tr class="border-b border-zinc-800/50">
+                      <td class="px-4 py-3">Energy</td>
+                      <td class="px-4 py-3">Infrastructure monitoring</td>
+                      <td class="px-4 py-3">Pipeline leaks, equipment corrosion</td>
+                      <td class="px-4 py-3">Emergency shutdown</td>
+                      <td class="px-4 py-3">Prevent environmental disasters</td>
+                    </tr>
+                    <tr class="border-b border-zinc-800/50">
+                      <td class="px-4 py-3">Construction</td>
+                      <td class="px-4 py-3">Site safety compliance</td>
+                      <td class="px-4 py-3">Missing PPE, unsafe scaffolding</td>
+                      <td class="px-4 py-3">Stop work order</td>
+                      <td class="px-4 py-3">Reduce OSHA violations</td>
+                    </tr>
+                    <tr>
+                      <td class="px-4 py-3">Smart Cities</td>
+                      <td class="px-4 py-3">Traffic &amp; crowd management</td>
+                      <td class="px-4 py-3">Congestion, crowd density</td>
+                      <td class="px-4 py-3">Dynamic signal control</td>
+                      <td class="px-4 py-3">Optimize urban flow</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              <div class="t-18 font-semibold text-zinc-100">Demo Implementations (Included)</div>
+              <div class="t-16 text-zinc-200">We've built two use-case examples to showcase the platform's flexibility:</div>
+
+              <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 p-5 space-y-2">
+                <div class="t-16 font-semibold text-zinc-100">1. Security &amp; Safety Monitoring</div>
+                <ul class="list-disc ml-5 t-16 text-zinc-200 space-y-1">
+                  <li>Detects violations in real-time (PPE missing, unsafe behavior, spills)</li>
+                  <li>Evaluates severity with confidence scores</li>
+                  <li>Executes stop-line commands or alerts with full evidence chain</li>
+                  <li>Shows trace-linked video clips and reasoning</li>
+                </ul>
+              </div>
+
+              <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 p-5 space-y-2">
+                <div class="t-16 font-semibold text-zinc-100">2. Assembly SOP Compliance</div>
+                <ul class="list-disc ml-5 t-16 text-zinc-200 space-y-1">
+                  <li>Sessionizes station workflows into discrete work units</li>
+                  <li>Validates completion against SOP requirements</li>
+                  <li>Identifies missing steps with citations to procedure documents</li>
+                  <li>Provides operator-ready corrective instructions</li>
+                </ul>
+              </div>
+
+              <div class="t-16 text-zinc-200">
+                The key insight: Both demos use the exact same streaming architecture, only the prompts, knowledge bases, and action handlers change. This proves the platform's universality.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Architecture -->
+        <section class="rounded-3xl border border-zinc-800/70 bg-zinc-900/30 backdrop-blur overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+          <div class="px-6 py-6 space-y-6">
+            <div>
+              <div class="t-22 font-semibold text-zinc-100">🏗️ How We Built It - Architecture</div>
+              <div class="t-16 text-zinc-400 mt-1">Three-layer design: Streaming (Confluent), Intelligence (Vertex AI), and Audit (BigQuery + Flink)</div>
+            </div>
+
+            <div class="space-y-4">
+              <div class="t-18 font-semibold text-zinc-100">Three-Plane Design</div>
+
+              <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 p-5 space-y-2">
+                <div class="t-16 font-semibold text-zinc-100">1. Streaming Plane (Confluent Cloud)</div>
+                <ul class="list-disc ml-5 t-16 text-zinc-200 space-y-1">
+                  <li>Multi-stage event choreography through Kafka topics</li>
+                  <li>Schema-governed contracts via Schema Registry (JSON Schema)</li>
+                  <li>Independent scaling per agent via consumer groups</li>
+                  <li>Replay-first architecture for forensics and iteration</li>
+                </ul>
+              </div>
+
+              <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 p-5 space-y-2">
+                <div class="t-16 font-semibold text-zinc-100">2. Intelligence Plane (Vertex AI)</div>
+                <ul class="list-disc ml-5 t-16 text-zinc-200 space-y-1">
+                  <li>Gemini multimodal: Zero-shot video understanding</li>
+                  <li>Gemini reasoning: Severity assessment and action planning</li>
+                  <li>Vertex AI Search: RAG-grounded SOP lookups with citations</li>
+                  <li>Embeddings API: Semantic retrieval for knowledge base</li>
+                </ul>
+              </div>
+
+              <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 p-5 space-y-2">
+                <div class="t-16 font-semibold text-zinc-100">3. Audit &amp; Analytics Plane</div>
+                <ul class="list-disc ml-5 t-16 text-zinc-200 space-y-1">
+                  <li>BigQuery: Immutable audit logs with correlated trace IDs</li>
+                  <li>Flink SQL: Real-time KPIs computed directly over Kafka streams</li>
+                  <li>Cloud Storage: Clip archival for evidence replay</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              <div class="t-18 font-semibold text-zinc-100">Multi-Agent Streaming Architecture</div>
+              <pre class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 p-5 t-16 text-zinc-200 whitespace-pre-wrap font-mono">
+video.clips → [Observer Agent]
+    ↓
+video.observations → [Sessionizer Agent]
+    ↓
+station.sessions → [Thinker Agent + SOP Grounding]
+    ↓
+sop.decisions → [Action Agent + Dedup]
+    ↓
+workflow.actions → [Audit Sink]
+    ↓
+audit.events (BigQuery)
+              </pre>
+
+              <div class="t-16 text-zinc-200">
+                Key Innovation: Each agent is an independent service consuming/producing from Kafka topics. This enables:
+              </div>
+              <ul class="list-disc ml-5 t-16 text-zinc-200 space-y-1">
+                <li>Horizontal Scaling where it matters (e.g., 10x Observer instances for 100 cameras)</li>
+                <li>Independent Evolution (swap models/prompts without downstream rewrites)</li>
+                <li>Fault Isolation (one agent failure doesn't crash the pipeline)</li>
+                <li>Clean Contracts (Schema Registry ensures safe evolution)</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- Technical Implementation -->
+        <section class="rounded-3xl border border-zinc-800/70 bg-zinc-900/30 backdrop-blur overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+          <div class="px-6 py-6 space-y-6">
+            <div class="t-22 font-semibold text-zinc-100">🔧 Technical Implementation - Why This Works at Scale</div>
+
+            <div class="space-y-3">
+              <div class="t-18 font-semibold text-zinc-100">1️⃣ Cost-Controlled Multimodal Inference</div>
+              <div class="t-16 text-zinc-200">Video AI inference can bankrupt a deployment. We built multiple cost gates:</div>
+              <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 p-5 space-y-2">
+                <div class="t-16 font-semibold text-zinc-100">Motion Detection Prefilter</div>
+                <ul class="list-disc ml-5 t-16 text-zinc-200 space-y-1">
+                  <li>Pixel-change detection + background subtraction</li>
+                  <li>Filters 80-90% of "quiet" clips before inference</li>
+                  <li>Turns "impossible economics" into viable deployment</li>
+                </ul>
+
+                <div class="t-16 font-semibold text-zinc-100 mt-4">Smart Sampling &amp; Segmentation</div>
+                <ul class="list-disc ml-5 t-16 text-zinc-200 space-y-1">
+                  <li>Configurable clip length and FPS</li>
+                  <li>Prevents redundant processing of static scenes</li>
+                </ul>
+
+                <div class="t-16 font-semibold text-zinc-100 mt-4">Streaming Deduplication</div>
+                <ul class="list-disc ml-5 t-16 text-zinc-200 space-y-1">
+                  <li>Cooldown windows prevent alert storms</li>
+                  <li>Action-level dedup across topics</li>
+                </ul>
+
+                <div class="t-16 text-zinc-200 mt-4">Cost Model:</div>
+                <pre class="t-16 text-zinc-200 whitespace-pre-wrap font-mono">
+API Calls/day ≈ (N_cameras × 1440 minutes/day) / (T_clip × (1 - filter_rate))
+
+Example: 10 cameras, 30-sec clips, 80% filtered
+= (10 × 1440) / (0.5 × 0.2) = 144,000 calls/day
+With 80% prefilter → 28,800 calls/day
+                </pre>
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              <div class="t-18 font-semibold text-zinc-100">2️⃣ Explainability &amp; Governance as First-Class Output</div>
+              <div class="t-16 text-zinc-200">Every decision includes:</div>
+              <ul class="list-disc ml-5 t-16 text-zinc-200 space-y-1">
+                <li>Evidence: Exact clip timestamp range</li>
+                <li>Rationale: Human-readable explanation</li>
+                <li>Confidence scores: Per-signal uncertainty</li>
+                <li>Citations: When grounded in SOP/policy (via Vertex AI Search)</li>
+                <li>Trace ID: Correlates across all pipeline stages</li>
+              </ul>
+              <div class="t-16 text-zinc-200">
+                Operators trust the system because they can see why it decided, not just what it decided.
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              <div class="t-18 font-semibold text-zinc-100">3️⃣ Real-Time KPIs Without Extra Infrastructure</div>
+              <div class="t-16 text-zinc-200">
+                The same Kafka streams that drive actions also power analytics:
+              </div>
+              <div class="t-16 text-zinc-200 font-semibold">Flink SQL Queries (examples included):</div>
+              <ul class="list-disc ml-5 t-16 text-zinc-200 space-y-1">
+                <li>Rule hit rates by violation type</li>
+                <li>Stop-line frequency trends</li>
+                <li>Confidence distribution analysis</li>
+                <li>P95 end-to-end latency tracking</li>
+                <li>Alert storm detection windows</li>
+              </ul>
+              <div class="t-16 text-zinc-200">
+                Value: No separate analytics pipeline, KPIs are computed in-stream.
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              <div class="t-18 font-semibold text-zinc-100">4️⃣ Production-Grade Replay &amp; Forensics</div>
+              <div class="t-16 text-zinc-200">Kafka's retention + correlated trace_id enables:</div>
+              <ul class="list-disc ml-5 t-16 text-zinc-200 space-y-1">
+                <li>Incident investigation: Replay exactly what the system saw</li>
+                <li>Model tuning: Re-run decisions with updated prompts</li>
+                <li>Compliance audits: Full evidence chain for regulatory review</li>
+                <li>A/B testing: Compare model outputs on same event history</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- Confluent Usage -->
+        <section class="rounded-3xl border border-zinc-800/70 bg-zinc-900/30 backdrop-blur overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+          <div class="px-6 py-6 space-y-6">
+            <div>
+              <div class="t-22 font-semibold text-zinc-100">🚀 Confluent Cloud Usage</div>
+              <div class="t-16 text-zinc-200 mt-2">This project is Confluent-native by design.</div>
+              <div class="t-16 text-zinc-200 mt-2">What We Used &amp; Why It Matters</div>
+            </div>
+
+            <div class="overflow-x-auto rounded-2xl ring-1 ring-zinc-800/70">
+              <table class="min-w-[1000px] w-full bg-zinc-950/40">
+                <thead class="text-left">
+                  <tr class="border-b border-zinc-800/70">
+                    <th class="px-4 py-3 t-16 text-zinc-300">Confluent Feature</th>
+                    <th class="px-4 py-3 t-16 text-zinc-300">How We Use It</th>
+                    <th class="px-4 py-3 t-16 text-zinc-300">Business Value</th>
+                  </tr>
+                </thead>
+                <tbody class="t-16 text-zinc-200">
+                  <tr class="border-b border-zinc-800/50">
+                    <td class="px-4 py-3">Kafka Topics</td>
+                    <td class="px-4 py-3">Multi-agent backbone with topic-per-stage pattern</td>
+                    <td class="px-4 py-3">Decoupling, fault isolation, clean evolution</td>
+                  </tr>
+                  <tr class="border-b border-zinc-800/50">
+                    <td class="px-4 py-3">Consumer Groups</td>
+                    <td class="px-4 py-3">Scale Observer instances (10x) independently from Thinker (2x)</td>
+                    <td class="px-4 py-3">Cost-efficient horizontal scaling</td>
+                  </tr>
+                  <tr class="border-b border-zinc-800/50">
+                    <td class="px-4 py-3">Schema Registry</td>
+                    <td class="px-4 py-3">JSON Schema contracts generated from Pydantic models</td>
+                    <td class="px-4 py-3">Safe prompt/model evolution, fewer breakages</td>
+                  </tr>
+                  <tr class="border-b border-zinc-800/50">
+                    <td class="px-4 py-3">Replayability</td>
+                    <td class="px-4 py-3">Replay by trace_id for forensics and iteration</td>
+                    <td class="px-4 py-3">Incident investigation, compliance, A/B testing</td>
+                  </tr>
+                  <tr>
+                    <td class="px-4 py-3">Flink SQL</td>
+                    <td class="px-4 py-3">Real-time KPIs + stream-side cost filters</td>
+                    <td class="px-4 py-3">Operational visibility, upstream cost gates</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 p-5">
+              <div class="t-16 text-zinc-200 font-semibold">Critical Design Decision:</div>
+              <div class="t-16 text-zinc-200 mt-2">
+                We chose event choreography over orchestration. Each agent is autonomous, consuming from upstream topics and producing to downstream topics. This creates natural backpressure, enables independent scaling, and makes the system resilient to partial failures.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Vertex Usage -->
+        <section class="rounded-3xl border border-zinc-800/70 bg-zinc-900/30 backdrop-blur overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+          <div class="px-6 py-6 space-y-6">
+            <div>
+              <div class="t-22 font-semibold text-zinc-100">🧠 Vertex AI Usage</div>
+              <div class="t-16 text-zinc-200 mt-2">What We Used &amp; Why It Matters</div>
+            </div>
+
+            <div class="overflow-x-auto rounded-2xl ring-1 ring-zinc-800/70">
+              <table class="min-w-[1000px] w-full bg-zinc-950/40">
+                <thead class="text-left">
+                  <tr class="border-b border-zinc-800/70">
+                    <th class="px-4 py-3 t-16 text-zinc-300">Vertex AI Feature</th>
+                    <th class="px-4 py-3 t-16 text-zinc-300">How We Use It</th>
+                    <th class="px-4 py-3 t-16 text-zinc-300">Business Value</th>
+                  </tr>
+                </thead>
+                <tbody class="t-16 text-zinc-200">
+                  <tr class="border-b border-zinc-800/50">
+                    <td class="px-4 py-3">Gemini Multimodal</td>
+                    <td class="px-4 py-3">Observer agent reads video clips, emits structured signals</td>
+                    <td class="px-4 py-3">Zero-shot understanding, no CV pipeline required</td>
+                  </tr>
+                  <tr class="border-b border-zinc-800/50">
+                    <td class="px-4 py-3">Gemini Reasoning</td>
+                    <td class="px-4 py-3">Thinker + Doer convert signals → severity → actions</td>
+                    <td class="px-4 py-3">Operational judgment with consistent JSON</td>
+                  </tr>
+                  <tr class="border-b border-zinc-800/50">
+                    <td class="px-4 py-3">Vertex AI Search</td>
+                    <td class="px-4 py-3">RAG grounding for SOP compliance checks</td>
+                    <td class="px-4 py-3">Citation-backed decisions, reduced hallucinations</td>
+                  </tr>
+                  <tr>
+                    <td class="px-4 py-3">Embeddings API</td>
+                    <td class="px-4 py-3">Semantic SOP chunk retrieval</td>
+                    <td class="px-4 py-3">Scalable knowledge grounding</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 p-5">
+              <div class="t-16 text-zinc-200 font-semibold">Critical Design Decision:</div>
+              <div class="t-16 text-zinc-200 mt-2">
+                We use structured output prompting (strict JSON schemas) to ensure Gemini outputs are Kafka-ready events, not unstructured text. This makes the pipeline reliable and testable.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Challenges -->
+        <section class="rounded-3xl border border-zinc-800/70 bg-zinc-900/30 backdrop-blur overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+          <div class="px-6 py-6 space-y-6">
+            <div class="t-22 font-semibold text-zinc-100">💪 Challenges We Overcame</div>
+
+            <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 p-5 space-y-2">
+              <div class="t-18 font-semibold text-zinc-100">1. Latency vs. Cost Trade-off</div>
+              <div class="t-16 text-zinc-200">
+                Problem: High-resolution video at 30 FPS = 1,800 frames/minute. At $0.05/frame, that's $90/minute = $129,600/day per camera. Impossible.
+              </div>
+              <div class="t-16 text-zinc-200 font-semibold mt-2">Solution:</div>
+              <ul class="list-disc ml-5 t-16 text-zinc-200 space-y-1">
+                <li>Motion detection cuts inference by 80-90%</li>
+                <li>Segment into 15-30 second clips</li>
+                <li>Sample at 1-2 FPS for analysis</li>
+              </ul>
+              <div class="t-16 text-zinc-200 mt-2">
+                Result: ~$10-20/day per camera (economically viable)
+              </div>
+            </div>
+
+            <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 p-5 space-y-2">
+              <div class="t-18 font-semibold text-zinc-100">2. Multi-Agent Coordination Without Brittle Orchestration</div>
+              <div class="t-16 text-zinc-200">
+                Problem: Centralized orchestrators become single points of failure and bottlenecks.
+              </div>
+              <div class="t-16 text-zinc-200 font-semibold mt-2">Solution:</div>
+              <ul class="list-disc ml-5 t-16 text-zinc-200 space-y-1">
+                <li>Event choreography via Kafka topics</li>
+                <li>Schema Registry enforces contracts between agents</li>
+                <li>Each agent scales independently</li>
+                <li>Natural backpressure prevents cascade failures</li>
+              </ul>
+            </div>
+
+            <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 p-5 space-y-2">
+              <div class="t-18 font-semibold text-zinc-100">3. Trust &amp; Explainability for Compliance Use Cases</div>
+              <div class="t-16 text-zinc-200">
+                Problem: "AI said stop the line" isn't acceptable in regulated environments.
+              </div>
+              <div class="t-16 text-zinc-200 font-semibold mt-2">Solution:</div>
+              <ul class="list-disc ml-5 t-16 text-zinc-200 space-y-1">
+                <li>Vertex AI Search grounds decisions in actual SOP documents</li>
+                <li>Every decision includes citations to specific procedure sections</li>
+                <li>Full audit trail with correlated trace IDs</li>
+                <li>Operators can replay incidents to understand "why"</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- Potential Value Applications -->
+        <section class="rounded-3xl border border-zinc-800/70 bg-zinc-900/30 backdrop-blur overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+          <div class="px-6 py-6 space-y-4">
+            <div class="t-22 font-semibold text-zinc-100">Potential Value Applications</div>
+
+            <div class="t-18 font-semibold text-zinc-100">Manufacturing &amp; Industrial:</div>
+            <ul class="list-disc ml-5 t-16 text-zinc-200 space-y-1">
+              <li>Downtime prevention: Early detection of equipment issues addresses documented $36K–$2.3M/hour costs</li>
+              <li>Predictive maintenance: Faster awareness of visual anomalies (smoke, leaks, vibrations)</li>
+              <li>Quality control: Real-time visual inspection of assembly processes</li>
+            </ul>
+
+            <div class="t-18 font-semibold text-zinc-100 mt-3">Safety &amp; Compliance:</div>
+            <ul class="list-disc ml-5 t-16 text-zinc-200 space-y-1">
+              <li>Injury prevention: With $43K average cost per workplace injury, early hazard detection has measurable value</li>
+              <li>Compliance monitoring: Automated verification of safety protocols</li>
+              <li>Regulatory support: Documented audit trails for incident investigation</li>
+            </ul>
+
+            <div class="t-18 font-semibold text-zinc-100 mt-3">Operational Efficiency:</div>
+            <ul class="list-disc ml-5 t-16 text-zinc-200 space-y-1">
+              <li>Process monitoring: Visual verification of workflow completion</li>
+              <li>Audit support: Reduced time spent on manual video review</li>
+              <li>Quality feedback: Faster identification of process deviations</li>
+            </ul>
+
+            <div class="t-18 font-semibold text-zinc-100 mt-3">Healthcare &amp; Patient Safety:</div>
+            <ul class="list-disc ml-5 t-16 text-zinc-200 space-y-1">
+              <li>Fall detection: Addressing documented hospital fall costs</li>
+              <li>Early intervention: Real-time alerts for patient mobility issues</li>
+              <li>Staff support: Automated monitoring between routine checks</li>
+            </ul>
+
+            <div class="t-18 font-semibold text-zinc-100 mt-3">Retail &amp; Customer Experience:</div>
+            <ul class="list-disc ml-5 t-16 text-zinc-200 space-y-1">
+              <li>Queue optimization: Visual monitoring of checkout wait times</li>
+              <li>Loss prevention: Automated detection of unusual activity</li>
+              <li>Service quality: Real-time awareness of customer service needs</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- What's Next -->
+        <section class="rounded-3xl border border-zinc-800/70 bg-zinc-900/30 backdrop-blur overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+          <div class="px-6 py-6 space-y-4">
+            <div class="t-22 font-semibold text-zinc-100">🎯 What's Next</div>
+            <div class="t-16 text-zinc-200">We built Sentinel as a architectural foundation. Natural next steps for us are:</div>
+
+            <div class="t-18 font-semibold text-zinc-100">Near-Term (1-3 Months)</div>
+            <ul class="list-disc ml-5 t-16 text-zinc-200 space-y-1">
+              <li>Flink-first cost gating: Move motion/signal thresholds into stream processing (materialized views)</li>
+              <li>Connector ecosystem: Slack, PagerDuty, ServiceNow, Jira (action handlers already modular)</li>
+              <li>Policy pack system: Plug-in SOP libraries per station/site/customer with version control</li>
+            </ul>
+
+            <div class="t-18 font-semibold text-zinc-100 mt-3">Medium-Term (3-6 Months)</div>
+            <ul class="list-disc ml-5 t-16 text-zinc-200 space-y-1">
+              <li>Vector Search hardening: Upgrade SOP retrieval to Vertex Vector Search for lower latency</li>
+              <li>Multi-modal expansion: Add audio analysis (machine sounds, alarms) to video</li>
+              <li>Edge deployment: Run Observer agents closer to cameras for ultra-low latency</li>
+            </ul>
+
+            <div class="t-18 font-semibold text-zinc-100 mt-3">Long-Term (6-12 Months)</div>
+            <ul class="list-disc ml-5 t-16 text-zinc-200 space-y-1">
+              <li>Federated learning: Train station-specific anomaly models on local data</li>
+              <li>Predictive maintenance: Correlate visual signals with equipment telemetry</li>
+              <li>Cross-site benchmarking: Compare SOP adherence across facilities</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- Built With -->
+        <section class="rounded-3xl border border-zinc-800/70 bg-zinc-900/30 backdrop-blur overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+          <div class="px-6 py-6 space-y-4">
+            <div class="t-22 font-semibold text-zinc-100">🛠️ Built With</div>
+
+            <div class="t-18 font-semibold text-zinc-100">Confluent Cloud (Core Platform)</div>
+            <ul class="list-disc ml-5 t-16 text-zinc-200 space-y-1">
+              <li>Kafka Topics: Multi-agent event backbone</li>
+              <li>Consumer Groups: Independent scaling per agent type</li>
+              <li>Schema Registry: Governed JSON Schema contracts</li>
+              <li>Flink SQL: Real-time KPIs and stream analytics</li>
+              <li>Replayability: Forensic replay by trace ID</li>
+            </ul>
+
+            <div class="t-18 font-semibold text-zinc-100 mt-3">Google Cloud Vertex AI (Intelligence Layer)</div>
+            <ul class="list-disc ml-5 t-16 text-zinc-200 space-y-1">
+              <li>Gemini 2.5 Flash (Multimodal): Video understanding</li>
+              <li>Gemini 2.5 Pro (Reasoning): Decision synthesis</li>
+              <li>Vertex AI Search: RAG-grounded SOP retrieval</li>
+              <li>Embeddings API: Semantic knowledge base</li>
+            </ul>
+
+            <div class="t-18 font-semibold text-zinc-100 mt-3">Google Cloud Infrastructure</div>
+            <ul class="list-disc ml-5 t-16 text-zinc-200 space-y-1">
+              <li>Cloud Storage: Clip archival</li>
+              <li>BigQuery: Audit log warehouse</li>
+              <li>Cloud Run: FastAPI control plane (demo UI)</li>
+              <li>Secret Manager: API key governance</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- Try It Yourself -->
+        <section class="rounded-3xl border border-zinc-800/70 bg-zinc-900/30 backdrop-blur overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+          <div class="px-6 py-6 space-y-3">
+            <div class="t-22 font-semibold text-zinc-100">🎬 Try It Yourself</div>
+            <div class="t-16 text-zinc-200">Demo Video: <span class="text-zinc-300 font-mono">{youtube_embed_url}</span></div>
+            <div class="t-16 text-zinc-200">Code Repository: <span class="text-zinc-300 font-mono">{github_url}</span></div>
+          </div>
+        </section>
+
+        <!-- Team -->
+        <section class="rounded-3xl border border-zinc-800/70 bg-zinc-900/30 backdrop-blur overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+          <div class="px-6 py-6 space-y-2">
+            <div class="t-22 font-semibold text-zinc-100">👥 Team</div>
+            <div class="t-16 text-zinc-200">Niket Shah - <a class="text-emerald-300 hover:text-emerald-200 underline decoration-emerald-500/30 hover:decoration-emerald-300/60" href="{linkedin_url}" target="_blank" rel="noreferrer noopener">LinkedIn</a></div>
+          </div>
+        </section>
+
+        <!-- Why This Matters -->
+        <section class="rounded-3xl border border-zinc-800/70 bg-zinc-900/30 backdrop-blur overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+          <div class="px-6 py-6 space-y-4">
+            <div class="t-22 font-semibold text-zinc-100">🏆 Why This Matters</div>
+
+            <div class="t-16 text-zinc-200">
+              Real-time video intelligence is hard to operationalize. Most approaches either sacrifice cost-efficiency, explainability, or governance. Sentinel demonstrates that you don't have to choose.
+            </div>
+
+            <div class="t-16 text-zinc-200">
+              ✅ Solves Documented Problems<br/>
+              Addresses $36K–$2.3M/hour downtime costs and $43K workplace injury costs with a practical, economically viable approach.
+            </div>
+
+            <div class="t-16 text-zinc-200">
+              ✅ Production-First Design<br/>
+              Cost controls aren't an afterthought, they're built into the architecture. Motion detection, sampling strategies, and deduplication make multimodal AI inference economically feasible at scale.
+            </div>
+
+            <div class="t-16 text-zinc-200">
+              ✅ Deep Sponsor Integration<br/>
+              This isn't a shallow integration. We use Confluent's event choreography for multi-agent coordination, Schema Registry for safe evolution, and Flink SQL for real-time KPIs. Vertex AI powers zero-shot video understanding, grounded reasoning with RAG, and citation-backed decisions.
+            </div>
+
+            <div class="t-16 text-zinc-200">
+              ✅ Explainability as Output<br/>
+              Every decision includes evidence, rationale, confidence scores, and citations. This isn't a black box, it's a system operators can trust and auditors can verify.
+            </div>
+
+            <div class="t-16 text-zinc-200">
+              ✅ Demonstrates Architectural Thinking<br/>
+              Two different use cases running on the same infrastructure proves the approach is adaptable. The streaming backbone doesn't change, only prompts and knowledge bases do.
+            </div>
+
+            <div class="t-16 text-zinc-200">
+              Sentinel shows how Confluent and Vertex AI can work together to make video intelligence operationally viable: governed, explainable, cost-controlled, and production-ready.
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      <!-- Footer -->
+      <footer class="mt-10 pb-8 t-14 text-zinc-500 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div>© Sentinel • Vision-to-Action</div>
+        <div class="flex gap-3">
+          <a class="hover:text-zinc-300 underline decoration-zinc-700 hover:decoration-zinc-400" href="/ui">Open Demo UI</a>
+          <a class="hover:text-zinc-300 underline decoration-zinc-700 hover:decoration-zinc-400" href="{github_url}" target="_blank" rel="noreferrer noopener">GitHub</a>
+          <a class="hover:text-zinc-300 underline decoration-zinc-700 hover:decoration-zinc-400" href="{linkedin_url}" target="_blank" rel="noreferrer noopener">LinkedIn</a>
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>
+"""
 
 def _ui_html() -> str:
     return r"""
@@ -98,15 +882,15 @@ def _ui_html() -> str:
             </div>
             <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 px-4 py-3">
               <div class="t-12 text-zinc-500">AI</div>
-              <div class="t-16 text-zinc-100 font-semibold" id="metaAI">Vertex AI (—)</div>
+              <div class="t-16 text-zinc-100 font-semibold" id="metaAI">Vertex AI (-)</div>
             </div>
             <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 px-4 py-3">
               <div class="t-12 text-zinc-500">Schema</div>
-              <div class="t-16 text-zinc-100 font-semibold" id="metaSchema">Schema Registry (—)</div>
+              <div class="t-16 text-zinc-100 font-semibold" id="metaSchema">Schema Registry (-)</div>
             </div>
             <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 px-4 py-3">
               <div class="t-12 text-zinc-500">Kafka</div>
-              <div class="t-16 text-zinc-100 font-semibold" id="metaKafka">—</div>
+              <div class="t-16 text-zinc-100 font-semibold" id="metaKafka">-</div>
             </div>
           </div>
         </div>
@@ -129,25 +913,25 @@ def _ui_html() -> str:
           <div class="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
             <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 px-4 py-3">
               <div class="t-12 text-zinc-500">Critical Incidents</div>
-              <div class="t-22 text-rose-200 font-semibold" id="kpiStop24h">—</div>
-              <div class="t-14 text-zinc-400 mt-1" id="kpiStopLast">Last: —</div>
+              <div class="t-22 text-rose-200 font-semibold" id="kpiStop24h">-</div>
+              <div class="t-14 text-zinc-400 mt-1" id="kpiStopLast">Last: -</div>
             </div>
 
             <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 px-4 py-3">
               <div class="t-12 text-zinc-500">Alerts</div>
-              <div class="t-22 text-amber-200 font-semibold" id="kpiAlert24h">—</div>
+              <div class="t-22 text-amber-200 font-semibold" id="kpiAlert24h">-</div>
               <div class="t-14 text-zinc-400 mt-1">Last 24h</div>
             </div>
 
             <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 px-4 py-3">
               <div class="t-12 text-zinc-500">Decisions</div>
-              <div class="t-22 text-violet-200 font-semibold" id="kpiDec24h">—</div>
+              <div class="t-22 text-violet-200 font-semibold" id="kpiDec24h">-</div>
               <div class="t-14 text-zinc-400 mt-1">Last 24h</div>
             </div>
 
             <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 px-4 py-3">
               <div class="t-12 text-zinc-500">Observations</div>
-              <div class="t-22 text-sky-200 font-semibold" id="kpiObs24h">—</div>
+              <div class="t-22 text-sky-200 font-semibold" id="kpiObs24h">-</div>
               <div class="t-14 text-zinc-400 mt-1">Last 24h</div>
             </div>
           </div>
@@ -156,24 +940,24 @@ def _ui_html() -> str:
             <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 px-4 py-3">
               <div class="t-14 font-semibold text-zinc-100">By Use-Case (Last 24h)</div>
               <div class="mt-3 space-y-2 t-16 text-zinc-200">
-                <div>Security — Stop: <span class="text-rose-200 font-semibold" id="kpiStopSec">—</span> • Alerts: <span class="text-amber-200 font-semibold" id="kpiAlertSec">—</span></div>
-                <div>Assembly — Stop: <span class="text-rose-200 font-semibold" id="kpiStopAsm">—</span> • Alerts: <span class="text-amber-200 font-semibold" id="kpiAlertAsm">—</span></div>
+                <div>Security - Stop: <span class="text-rose-200 font-semibold" id="kpiStopSec">-</span> • Alerts: <span class="text-amber-200 font-semibold" id="kpiAlertSec">-</span></div>
+                <div>Assembly - Stop: <span class="text-rose-200 font-semibold" id="kpiStopAsm">-</span> • Alerts: <span class="text-amber-200 font-semibold" id="kpiAlertAsm">-</span></div>
               </div>
             </div>
 
             <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 px-4 py-3">
               <div class="t-14 font-semibold text-zinc-100">Priority Distribution (Last 24h)</div>
               <div class="mt-3 space-y-2 t-16 text-zinc-200">
-                <div>P1: <span class="font-semibold text-rose-200" id="kpiP1">—</span></div>
-                <div>P2: <span class="font-semibold text-amber-200" id="kpiP2">—</span></div>
-                <div>P3: <span class="font-semibold text-zinc-200" id="kpiP3">—</span></div>
+                <div>P1: <span class="font-semibold text-rose-200" id="kpiP1">-</span></div>
+                <div>P2: <span class="font-semibold text-amber-200" id="kpiP2">-</span></div>
+                <div>P3: <span class="font-semibold text-zinc-200" id="kpiP3">-</span></div>
               </div>
             </div>
 
             <div class="rounded-2xl bg-zinc-950/40 ring-1 ring-zinc-800/70 px-4 py-3">
               <div class="t-14 font-semibold text-zinc-100">Top Rules (Decisions Last 24h)</div>
               <div class="mt-3 space-y-2 t-16 text-zinc-200" id="kpiRules">
-                <div class="t-16 text-zinc-400">—</div>
+                <div class="t-16 text-zinc-400">-</div>
               </div>
             </div>
           </div>
@@ -320,7 +1104,7 @@ def _ui_html() -> str:
       }
 
       function fmtIsoShort(iso) {
-        if (!iso) return "—";
+        if (!iso) return "-";
         try {
           const d = new Date(iso);
           return d.toISOString().replace("T"," ").slice(0,16);
@@ -448,8 +1232,8 @@ def _ui_html() -> str:
           const r = await fetch("/meta");
           const m = await r.json();
 
-          document.getElementById("metaKafka").textContent = m.kafka_bootstrap || "—";
-          const sr = m.schema_registry || "—";
+          document.getElementById("metaKafka").textContent = m.kafka_bootstrap || "-";
+          const sr = m.schema_registry || "-";
           document.getElementById("metaSchema").textContent = "Schema Registry (" + sr + ")";
 
           const obsModel = m.vertex?.observer_model || "gemini";
@@ -465,10 +1249,10 @@ def _ui_html() -> str:
           const r = await fetch("/kpi");
           const k = await r.json();
 
-          document.getElementById("kpiStop24h").textContent = String(k.stop_line_24h ?? "—");
-          document.getElementById("kpiAlert24h").textContent = String(k.alert_24h ?? "—");
-          document.getElementById("kpiDec24h").textContent = String(k.decisions_24h ?? "—");
-          document.getElementById("kpiObs24h").textContent = String(k.observations_24h ?? "—");
+          document.getElementById("kpiStop24h").textContent = String(k.stop_line_24h ?? "-");
+          document.getElementById("kpiAlert24h").textContent = String(k.alert_24h ?? "-");
+          document.getElementById("kpiDec24h").textContent = String(k.decisions_24h ?? "-");
+          document.getElementById("kpiObs24h").textContent = String(k.observations_24h ?? "-");
 
           document.getElementById("kpiStopLast").textContent = "Last: " + fmtIsoShort(k.last_stop_line_ts);
 
@@ -485,7 +1269,7 @@ def _ui_html() -> str:
           rulesEl.innerHTML = "";
           const rules = Array.isArray(k.top_rules) ? k.top_rules : [];
           if (!rules.length) {
-            rulesEl.innerHTML = `<div class="t-16 text-zinc-400">—</div>`;
+            rulesEl.innerHTML = `<div class="t-16 text-zinc-400">-</div>`;
           } else {
             rules.slice(0,5).forEach(r => {
               const row = document.createElement("div");
@@ -588,7 +1372,7 @@ def _ui_html() -> str:
           const a = payload?.assessment || {};
           const rule = a.rule_id ? String(a.rule_id) : "";
           const risk = a.risk ? String(a.risk) : "";
-          if (rule && risk) return `${rule} — ${risk}`;
+          if (rule && risk) return `${rule} - ${risk}`;
           return rule || risk || "Decision generated.";
         }
         if (kind === "action") return String(payload?.action?.message || "").trim() || "Action executed.";
@@ -671,7 +1455,7 @@ def _ui_html() -> str:
               <div class="rounded-xl bg-zinc-950/35 ring-1 ring-zinc-800/70 p-4">
                 <div class="t-14 text-zinc-400">Recommended action</div>
                 <div class="mt-1 t-18 font-semibold text-zinc-100">${escapeHtml(actionType || "unknown")} ${priority ? `• ${escapeHtml(priority)}` : ""}</div>
-                <div class="mt-1 t-16 text-zinc-200">${escapeHtml(actionMsg || "—")}</div>
+                <div class="mt-1 t-16 text-zinc-200">${escapeHtml(actionMsg || "-")}</div>
               </div>
 
               <div class="rounded-xl bg-zinc-950/35 ring-1 ring-zinc-800/70 p-4 space-y-2">
@@ -684,7 +1468,7 @@ def _ui_html() -> str:
 
               <div class="rounded-xl bg-zinc-950/35 ring-1 ring-zinc-800/70 p-4">
                 <div class="t-14 text-zinc-400">Rationale</div>
-                <div class="mt-1 t-16 text-zinc-200">${escapeHtml(String(rationale?.short || "—"))}</div>
+                <div class="mt-1 t-16 text-zinc-200">${escapeHtml(String(rationale?.short || "-"))}</div>
               </div>
 
               ${citations.length ? `
@@ -702,8 +1486,8 @@ def _ui_html() -> str:
 
               <div class="rounded-xl bg-zinc-950/35 ring-1 ring-zinc-800/70 p-4 space-y-2">
                 <div class="t-14 text-zinc-400">Evidence</div>
-                ${kvRow("reason", reason || "—")}
-                ${clipRange ? kvRow("clip_range", `${clipRange[0]} → ${clipRange[1]}`) : kvRow("clip_range", "—")}
+                ${kvRow("reason", reason || "-")}
+                ${clipRange ? kvRow("clip_range", `${clipRange[0]} → ${clipRange[1]}`) : kvRow("clip_range", "-")}
                 ${clipLink ? `<div class="mt-2">${clipLink}</div>` : ""}
               </div>
             </div>
@@ -1081,6 +1865,10 @@ def build_app(cfg: Settings) -> FastAPI:
     @app.get("/ui", response_class=HTMLResponse)
     def ui():
         return _ui_html()
+
+    @app.get("/", response_class=HTMLResponse, include_in_schema=False)
+    def home():
+        return _home_html(linkedin_url="https://www.linkedin.com/in/niketshah-9033959570", github_url="https://github.com/Niket93/sentinel", youtube_embed_url="https://www.youtube.com/embed/-X6tXlmWlvM")
 
     @app.get("/video")
     def video(use_case: str = "security"):

@@ -1868,7 +1868,7 @@ def build_app(cfg: Settings) -> FastAPI:
 
     @app.get("/", response_class=HTMLResponse, include_in_schema=False)
     def home():
-        return _home_html(linkedin_url="https://www.linkedin.com/in/niketshah-9033959570", github_url="https://github.com/Niket93/sentinel", youtube_embed_url="https://www.youtube.com/embed/-X6tXlmWlvM")
+        return _home_html(linkedin_url="https://www.linkedin.com/in/niketshah-9033959570", github_url="https://github.com/Niket93/sentinel", youtube_embed_url="https://www.youtube.com/embed/pBymq70Erjs")
 
     @app.get("/video")
     def video(use_case: str = "security"):
